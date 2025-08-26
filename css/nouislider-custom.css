@@ -1,0 +1,25 @@
+/* Custom noUiSlider styling for elegant maroon theme */
+.noUi-connect {
+  background: maroon !important;
+  height: 100% !important;
+}
+.noUi-horizontal {
+  height: 8px !important;
+}
+.noUi-base {
+  height: 8px !important;
+}
+.noUi-horizontal .noUi-handle,
+.noUi-handle {
+  width: 16px !important;
+  height: 16px !important;
+  border-radius: 50% !important;
+  border: 2px solid maroon !important;
+  background: #fff !important;
+  box-shadow: 0 2px 8px rgba(128,0,0,0.18) !important;
+  top: -4px !important;
+}
+.noUi-handle:after,
+.noUi-handle:before {
+  display: none !important;
+}

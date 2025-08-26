@@ -1,0 +1,1685 @@
+    <style>
+    #boundary-select-container {
+        position: absolute;
+        left: 16px;
+        bottom: 16px;
+        background: rgba(255,255,255,0.97);
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+        padding: 10px 16px 10px 12px;
+        z-index: 3002;
+        min-width: 180px;
+        font-size: 1em;
+        display: none;
+    }
+    #boundary-select-container label {
+        display: flex;
+        align-items: center;
+        margin-bottom: 4px;
+        font-size: 0.98em;
+        cursor: pointer;
+    }
+    #boundary-select-container input[type=checkbox] {
+        margin-right: 8px;
+    }
+    #boundary-select-title {
+        font-weight: bold;
+        margin-bottom: 6px;
+        color: #1976d2;
+    }
+    </style>
+    <div id="boundary-select-container" style="display:none">
+        <div id="boundary-select-title">Select Boundaries</div>
+        <div id="boundary-checkbox-list"></div>
+    </div>
+
+    <script>
+    // --- Boundary Multi-Select UI ---
+    function showBoundarySelect(boundaryGeoJSON) {
+        var container = document.getElementById('boundary-select-container');
+        var list = document.getElementById('boundary-checkbox-list');
+        list.innerHTML = '';
+        if (!boundaryGeoJSON || !boundaryGeoJSON.features || boundaryGeoJSON.features.length === 0) {
+            container.style.display = 'none';
+            return;
+        }
+        boundaryGeoJSON.features.forEach(function(f, idx) {
+            var label = document.createElement('label');
+            var cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.value = idx;
+            cb.checked = true;
+            label.appendChild(cb);
+            // Try to use a meaningful name from properties
+            var nameFields = ['name', 'NAME', 'Name', 'id', 'ID', 'Id', 'desc', 'description', 'label', 'LABEL'];
+            var name = null;
+            if (f.properties) {
+                for (var i = 0; i < nameFields.length; i++) {
+                    if (f.properties[nameFields[i]]) {
+                        name = f.properties[nameFields[i]];
+                        break;
+                    }
+                }
+            }
+            if (!name) name = 'Boundary ' + (idx+1);
+            label.appendChild(document.createTextNode(' ' + name));
+            list.appendChild(label);
+        });
+        container.style.display = 'block';
+    }
+    function getSelectedBoundaryIndexes() {
+        var list = document.getElementById('boundary-checkbox-list');
+        if (!list) return [];
+        var cbs = list.querySelectorAll('input[type=checkbox]');
+        var idxs = [];
+        cbs.forEach(function(cb) { if (cb.checked) idxs.push(parseInt(cb.value)); });
+        return idxs;
+    }
+    // Show/hide boundary select UI on upload
+    document.addEventListener('kml-upload-success', function(e) {
+        if (e.detail && e.detail.layer) {
+            var geojson = e.detail.layer.toGeoJSON();
+            showBoundarySelect(geojson);
+        }
+    });
+    document.addEventListener('geojson-upload-success', function(e) {
+        if (e.detail && e.detail.layer) {
+            var geojson = e.detail.layer.toGeoJSON();
+            showBoundarySelect(geojson);
+        }
+    });
+    </script>
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="stylesheet" href="css/leaflet.css">
+    <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+    <link rel="stylesheet" href="css/qgis2web.css">
+    <link rel="stylesheet" href="css/fontawesome-all.min.css">
+    <link rel="stylesheet" href="css/filter.css">
+    <link rel="stylesheet" href="css/nouislider.min.css">
+    <link rel="stylesheet" href="css/nouislider-custom.css">
+    <link rel="stylesheet" href="css/custom.css">
+    <link rel="stylesheet" href="css/leaflet.photon.css">
+    <!-- <link rel="stylesheet" href="lib/opacity/Control.Opacity.css"> -->
+    <!-- Leaflet.markercluster plugin CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    <style>
+    /* Remove blinking text cursor (caret) from all non-input UI elements */
+    #map, #sidebar-container, #sidebar-inner, #menu, .leaflet-container, .leaflet-control, .leaflet-pane, .leaflet-marker-icon, .leaflet-popup, .leaflet-control-attribution, .leaflet-control-zoom, .leaflet-control-layers, .leaflet-control-photon, .signposts, .custom-cluster, .chip-container, .clear-filter-btn, .ms-dropdown-btn, .filterselect select, .sidebar-fab, .sidebar-fab-text, .navbar, .navbar-logo, .navbar-right, .project-title, .map-title {
+        cursor: default !important;
+        caret-color: transparent !important;
+        user-select: none;
+    }
+    /* Allow caret and text selection only for input, textarea, and contenteditable */
+    input, textarea, [contenteditable="true"] {
+        cursor: text !important;
+        caret-color: auto !important;
+        user-select: text;
+    }
+        /* Sidebar toggle button with interactive arrow */
+        #sidebar-toggle {
+            position: absolute;
+            right: -44px;
+            top: 40%;
+            transform: translateY(-50%);
+            background: #800000;
+            color: #fff;
+            border: none;
+            border-radius: 0 6px 6px 0;
+            cursor: pointer;
+            font-size: 1.2em;
+            z-index: 3001;
+            height: 44px;
+            width: 44px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, right 0.35s cubic-bezier(.4,1.4,.6,1);
+        }
+        #sidebar-toggle .chevron {
+            font-size: 1.5em;
+            transition: transform 0.3s cubic-bezier(.4,1.4,.6,1);
+            transform: rotate(0deg);
+        }
+        #sidebar-toggle:hover, #sidebar-toggle:focus {
+            background: #800000;
+        }
+        /* Add top padding to the Period (Century) filter section title */
+        #menu {
+            padding-right: 10px;
+        }
+        #menu .period-century-label {
+            padding-top: 10px;
+            padding-left: 12px;
+    /* End of custom styles */
+        #menu .slider {
+            padding-left: 12px;
+            padding-top: 5px;
+            padding-right: 12px;
+        }
+        .clear-filter-btn {
+            display: block;
+            margin: 8px 0 0 12px;
+            padding: 1px 7px;
+            font-size: 5.6px;
+            font-weight: 600;
+            color: #d32f2f;
+            background: transparent;
+            border: 1px solid #d32f2f;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: left;
+            outline: none;
+            transition: background 0.2s, color 0.2s, border 0.2s;
+        }
+        
+        .slider {
+            padding-top: 5px;
+        }
+        /* Classic Material style for noUiSlider with maroon bar */
+        .noUi-target {
+            background: #fafafa;
+            border-radius: 6px;
+            border: 1.5px solid #d3d3d3;
+            box-shadow: 0 2px 8px rgba(128,0,0,0.08);
+            margin-top: 8px;
+        }
+        .noUi-base {
+            background: transparent;
+            height: 6px;
+            border-radius: 6px;
+        }
+        .noUi-connect {
+            background: maroon;
+            box-shadow: 0 1px 6px rgba(128,0,0,0.18);
+            height: 6px;
+            border-radius: 6px;
+            opacity: 1;
+            margin-top: 0;
+        }
+        .noUi-horizontal .noUi-handle {
+            border-radius: 50%;
+            background: #fff;
+            border: 2px solid maroon;
+            box-shadow: 0 2px 8px rgba(128,0,0,0.18);
+            width: 18px;
+            height: 18px;
+            top: -6px;
+        }
+        .noUi-handle:before, .noUi-handle:after {
+            display: none;
+        }
+        }
+        .clear-filter-btn:hover {
+            background: #ffeaea;
+            color: #b71c1c;
+            border-color: #b71c1c;
+        }
+        /* Style for filter dropdowns */
+        .filterselect select {
+            width: 95%;
+            padding: 6px 32px 6px 8px;
+            border: 1px solid #bbb;
+            border-radius: 4px;
+            background: #f9f9f9;
+            font-size: 1em;
+            margin-bottom: 6px;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url('data:image/svg+xml;utf8,<svg fill="%23666" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            background-size: 20px 20px;
+            cursor: pointer;
+        }
+        .ms-dropdown-btn {
+            width: 95%;
+            padding: 6px 32px 6px 8px;
+            border: 1px solid #bbb;
+            border-radius: 4px;
+            background: #f9f9f9;
+            font-size: 1em;
+            margin-bottom: 6px;
+            text-align: left;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url('data:image/svg+xml;utf8,<svg fill="%23666" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            background-size: 20px 20px;
+            cursor: pointer;
+        }
+        .filterselect select:focus {
+            outline: 2px solid #4363d8;
+            background: #fff;
+        }
+        .filterlabel {
+            font-weight: bold;
+            margin-bottom: 2px;
+            margin-top: 4px;
+            color: maroon;
+            text-align: left;
+            display: block;
+        }
+        .filterselect {
+            margin-bottom: 12px;
+        }
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        .sidebar-fab {
+            position: absolute;
+            top: 50%;
+            left: -28px;
+            transform: translateY(-50%);
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(to bottom, #a1001a 0%, #800000 100%);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            box-shadow: 0 2px 12px rgba(128,0,0,0.18);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 3000;
+            transition: background 0.2s, color 0.2s, box-shadow 0.2s, filter 0.2s;
+            outline: none;
+        }
+        .sidebar-fab:hover, .sidebar-fab:focus {
+            filter: brightness(1.08) drop-shadow(0 4px 16px #80000044);
+            background: linear-gradient(to bottom, #b71c1c 0%, #800000 100%);
+            color: #fff;
+        }
+        .sidebar-fab-icon {
+            font-size: 1.6em;
+            display: inline-block;
+            transition: transform 0.2s;
+            color: #fff;
+        }
+        .sidebar-fab-text {
+            position: absolute;
+            top: 50%;
+            left: -110px;
+            transform: translateY(-50%) rotate(-90deg);
+            min-width: 100px;
+            height: 44px;
+            background: linear-gradient(to bottom, #a1001a 0%, #800000 100%);
+            color: #fff;
+            border: none;
+            border-radius: 22px;
+            box-shadow: 0 2px 12px rgba(128,0,0,0.18);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 3000;
+            transition: background 0.2s, color 0.2s, box-shadow 0.2s, filter 0.2s;
+            outline: none;
+            font-size: 1.1em;
+            font-weight: 600;
+            padding: 0 18px;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+        .sidebar-fab-text:hover, .sidebar-fab-text:focus {
+            filter: brightness(1.08) drop-shadow(0 4px 16px #80000044);
+            background: linear-gradient(to bottom, #b71c1c 0%, #800000 100%);
+            color: #fff;
+        }
+        </style>
+        <!-- Chip styles moved to custom.css -->
+        <title>Herostones of United Bengaluru District</title>
+    </head>
+        <body>
+        <!-- Top Navigation Bar -->
+        <link rel="stylesheet" href="css/nav-bar.css">
+        <nav class="navbar">
+            <div class="navbar-logo">                
+                <img src="css/images/0.png" alt="The Mythic Society" />
+                <span class="navbar-divider"></span>
+                <span class="project-title">The Mythic Society Bengaluru Inscription<br>Digital Conservation Project</span>
+            </div>
+            <div class="navbar-right">
+                <span class="map-title">
+                    ಬೆಂಗಳೂರ ವೀರಗಲ್ಲುಗಳು <br>
+                    Herostones of Bengaluru
+                </span>
+            </div>
+        </nav>
+    <!-- Sidebar, background, and toggle button (right side) -->
+    <div id="map"></div>
+    <div id="sidebar-container" style="position:fixed;top:var(--navbar-height,60px);left:0;height:calc(100vh - var(--navbar-height,60px));z-index:2001;pointer-events:auto;">
+        <div id="sidebar-inner" style="position:relative;width:320px;height:100vh;transition:transform 0.35s cubic-bezier(.4,1.4,.6,1);will-change:transform;display:flex;">
+            <div id="menu" style="height:100vh;overflow-y:auto;position:relative;top:0;left:0;background:rgba(255,255,255,0.85);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);box-shadow:2px 0 16px 0 rgba(0,0,0,0.08);pointer-events:auto"></div>
+            <button id="sidebar-toggle" aria-label="Toggle sidebar"><span class="chevron"><i class="fas fa-chevron-left"></i></span></button>
+        </div>
+    </div>
+    <!-- JS Dependencies -->
+    <script src="js/qgis2web_expressions.js"></script>
+    <script>
+    // Dynamically set --navbar-height CSS variable based on navbar height
+    function setNavbarHeightVar() {
+        var navbar = document.querySelector('.navbar, #top-navbar');
+        if (navbar) {
+            var h = navbar.offsetHeight;
+            document.documentElement.style.setProperty('--navbar-height', h + 'px');
+        }
+    }
+    // Set immediately, before DOMContentLoaded, to avoid FOUC/overlap
+    setNavbarHeightVar();
+    window.addEventListener('DOMContentLoaded', setNavbarHeightVar);
+    window.addEventListener('resize', setNavbarHeightVar);
+    setTimeout(setNavbarHeightVar, 100); // In case of late font/image load
+    </script>
+    <script src="js/leaflet.js"></script>
+    <!-- Leaflet.markercluster plugin JS -->
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    <script src="js/L.Control.Layers.Tree.min.js"></script>
+    <script src="js/leaflet.rotatedMarker.js"></script>
+    <script src="js/leaflet.pattern.js"></script>
+    <script src="js/leaflet-hash.js"></script>
+    <!-- <script src="lib/opacity/Control.Opacity.js"></script> -->
+    <script src="js/Autolinker.min.js"></script>
+    <script src="js/rbush.min.js"></script>
+    <script src="js/labelgun.min.js"></script>
+    <script src="js/labels.js"></script>
+    <script src="js/leaflet.photon.js"></script>
+    <script src="js/tailDT.js"></script>
+    <script src="js/nouislider.min.js"></script>
+    <script src="js/wNumb.js"></script>
+    <!-- Data Files -->
+    <script src="data/RamanagaraDistrict_1.js"></script>
+    <script src="data/BengaluruRuralDistrict_2.js"></script>
+    <script src="data/BengaluruUrbanDistrict_3.js"></script>
+    <script src="data/MandyaDistrict_4.js"></script>
+    <script src="data/HeroStonesofUnitedBengaluruDistrict_5.js"></script>
+    <script>
+        var highlightLayer;
+        function highlightFeature(e) {
+            highlightLayer = e.target;
+
+            if (e.target.feature.geometry.type === 'LineString' || e.target.feature.geometry.type === 'MultiLineString') {
+              highlightLayer.setStyle({
+                color: '#fffac8',
+              });
+            } else {
+              highlightLayer.setStyle({
+                fillColor: '#fffac8',
+                fillOpacity: 0.5
+              });
+            }
+            highlightLayer.openPopup();
+        }
+    // Adjust map top margin for navbar
+    document.body.style.marginTop = '48px';
+    var map = L.map('map', {
+            zoomControl:false, maxZoom:28, minZoom:1
+        }).fitBounds([[12.320663192969104,76.32331776067834],[13.400287716827064,78.35451868718586]]);
+        var hash = new L.Hash(map);
+        map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
+        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+        // remove popup's row if "visible-with-data"
+        function removeEmptyRowsFromPopupContent(content, feature) {
+         var tempDiv = document.createElement('div');
+         tempDiv.innerHTML = content;
+         var rows = tempDiv.querySelectorAll('tr');
+         for (var i = 0; i < rows.length; i++) {
+             var td = rows[i].querySelector('td.visible-with-data');
+             var key = td ? td.id : '';
+             if (td && td.classList.contains('visible-with-data') && feature.properties[key] == null) {
+                 rows[i].parentNode.removeChild(rows[i]);
+             }
+         }
+         return tempDiv.innerHTML;
+        }
+        // add class to format popup if it contains media
+		function addClassToPopupIfMedia(content, popup) {
+			var tempDiv = document.createElement('div');
+			tempDiv.innerHTML = content;
+			if (tempDiv.querySelector('td img')) {
+				popup._contentNode.classList.add('media');
+					// Delay to force the redraw
+					setTimeout(function() {
+						popup.update();
+					}, 10);
+			} else {
+				popup._contentNode.classList.remove('media');
+			}
+		}
+    // Removed the 'Herostones of United Bengaluru District' title control above the zoom control
+        var zoomControl = L.control.zoom({
+            position: 'topright'
+        }).addTo(map);
+        var bounds_group = new L.featureGroup([]);
+        function setBounds() {
+        }
+        map.createPane('pane_OSMStandard_0');
+        map.getPane('pane_OSMStandard_0').style.zIndex = 400;
+        var layer_OSMStandard_0 = L.tileLayer('http://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            pane: 'pane_OSMStandard_0',
+            opacity: 0.75,
+            attribution: '<a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors, CC-BY-SA</a>',
+            minZoom: 1,
+            maxZoom: 28,
+            minNativeZoom: 0,
+            maxNativeZoom: 19
+        });
+        layer_OSMStandard_0;
+        map.addLayer(layer_OSMStandard_0);
+        function pop_RamanagaraDistrict_1(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_RamanagaraDistrict_1_0() {
+            return {
+                pane: 'pane_RamanagaraDistrict_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.5)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 0.5,
+                fillColor: 'rgba(178,223,138,0.34901960784313724)',
+                interactive: false,
+            }
+        }
+        map.createPane('pane_RamanagaraDistrict_1');
+        map.getPane('pane_RamanagaraDistrict_1').style.zIndex = 401;
+        map.getPane('pane_RamanagaraDistrict_1').style['mix-blend-mode'] = 'normal';
+        var layer_RamanagaraDistrict_1 = new L.geoJson(json_RamanagaraDistrict_1, {
+            attribution: '',
+            interactive: false,
+            dataVar: 'json_RamanagaraDistrict_1',
+            layerName: 'layer_RamanagaraDistrict_1',
+            pane: 'pane_RamanagaraDistrict_1',
+            onEachFeature: pop_RamanagaraDistrict_1,
+            style: style_RamanagaraDistrict_1_0,
+        });
+        bounds_group.addLayer(layer_RamanagaraDistrict_1);
+        map.addLayer(layer_RamanagaraDistrict_1);
+        function pop_BengaluruRuralDistrict_2(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_BengaluruRuralDistrict_2_0() {
+            return {
+                pane: 'pane_BengaluruRuralDistrict_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.5)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 0.5,
+                fillColor: 'rgba(166,206,227,0.28627450980392155)',
+                interactive: false,
+            }
+        }
+        map.createPane('pane_BengaluruRuralDistrict_2');
+        map.getPane('pane_BengaluruRuralDistrict_2').style.zIndex = 402;
+        map.getPane('pane_BengaluruRuralDistrict_2').style['mix-blend-mode'] = 'normal';
+        var layer_BengaluruRuralDistrict_2 = new L.geoJson(json_BengaluruRuralDistrict_2, {
+            attribution: '',
+            interactive: false,
+            dataVar: 'json_BengaluruRuralDistrict_2',
+            layerName: 'layer_BengaluruRuralDistrict_2',
+            pane: 'pane_BengaluruRuralDistrict_2',
+            onEachFeature: pop_BengaluruRuralDistrict_2,
+            style: style_BengaluruRuralDistrict_2_0,
+        });
+        bounds_group.addLayer(layer_BengaluruRuralDistrict_2);
+        map.addLayer(layer_BengaluruRuralDistrict_2);
+        function pop_BengaluruUrbanDistrict_3(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_BengaluruUrbanDistrict_3_0() {
+            return {
+                pane: 'pane_BengaluruUrbanDistrict_3',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.5)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 0.5,
+                fillColor: 'rgba(141,90,153,0.2627450980392157)',
+                interactive: false,
+            }
+        }
+        map.createPane('pane_BengaluruUrbanDistrict_3');
+        map.getPane('pane_BengaluruUrbanDistrict_3').style.zIndex = 403;
+        map.getPane('pane_BengaluruUrbanDistrict_3').style['mix-blend-mode'] = 'normal';
+        var layer_BengaluruUrbanDistrict_3 = new L.geoJson(json_BengaluruUrbanDistrict_3, {
+            attribution: '',
+            interactive: false,
+            dataVar: 'json_BengaluruUrbanDistrict_3',
+            layerName: 'layer_BengaluruUrbanDistrict_3',
+            pane: 'pane_BengaluruUrbanDistrict_3',
+            onEachFeature: pop_BengaluruUrbanDistrict_3,
+            style: style_BengaluruUrbanDistrict_3_0,
+        });
+        bounds_group.addLayer(layer_BengaluruUrbanDistrict_3);
+        map.addLayer(layer_BengaluruUrbanDistrict_3);
+        function pop_MandyaDistrict_4(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_MandyaDistrict_4_0() {
+            return {
+                pane: 'pane_MandyaDistrict_4',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.5)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 0.5,
+                fillColor: 'rgba(255,216,177,0.5)',
+                interactive: false,
+            }
+        }
+        map.createPane('pane_MandyaDistrict_4');
+        map.getPane('pane_MandyaDistrict_4').style.zIndex = 404;
+        map.getPane('pane_MandyaDistrict_4').style['mix-blend-mode'] = 'normal';
+        var layer_MandyaDistrict_4 = new L.geoJson(json_MandyaDistrict_4, {
+            attribution: '',
+            interactive: false,
+            dataVar: 'json_MandyaDistrict_4',
+            layerName: 'layer_MandyaDistrict_4',
+            pane: 'pane_MandyaDistrict_4',
+            onEachFeature: pop_MandyaDistrict_4,
+            style: style_MandyaDistrict_4_0,
+        });
+        bounds_group.addLayer(layer_MandyaDistrict_4);
+        map.addLayer(layer_MandyaDistrict_4);
+        function pop_HeroStonesofUnitedBengaluruDistrict_5(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">Type of Herostone</th>\
+                        <td>' + (feature.properties['Type of Herostone'] !== null ? autolinker.link(String(feature.properties['Type of Herostone']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Period</th>\
+                        <td>' + (feature.properties['Period'] !== null ? autolinker.link(String(feature.properties['Period']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Name of the Hero</th>\
+                        <td>' + (feature.properties['Name of the Hero'] !== null ? autolinker.link(String(feature.properties['Name of the Hero']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Village</th>\
+                        <td>' + (feature.properties['Village'] !== null ? autolinker.link(String(feature.properties['Village']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Taluk</th>\
+                        <td>' + (feature.properties['Taluk'] !== null ? autolinker.link(String(feature.properties['Taluk']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">District</th>\
+                        <td>' + (feature.properties['District'] !== null ? autolinker.link(String(feature.properties['District']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Script of the Inscription</th>\
+                        <td>' + (feature.properties['Script of the Inscription'] !== null ? autolinker.link(String(feature.properties['Script of the Inscription']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Conservation Status</th>\
+                        <td>' + (feature.properties['Conservation Status'] !== null ? autolinker.link(String(feature.properties['Conservation Status']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">With or Without Inscription</th>\
+                        <td>' + (feature.properties['With or Without Inscription'] !== null ? autolinker.link(String(feature.properties['With or Without Inscription']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        // Color palette for Type of Herostone (add more as needed)
+        var herostoneTypeColors = {
+            'Aatma Balidana (Self Sacrifice) Herostone': '#e57373',
+            'Beeragallu (Kuruba)': '#ba68c8',
+            'Broken Herostone': '#ffd54f',
+            'Handibete (Boar)': '#4fc3f7',
+            'Havubete (Snake)': '#81c784',
+            'Herostone': '#f06292',
+            'Hulibete (Tiger)': '#ffb74d',
+            'Hulibete and Turugol (Tiger and Cattle)': '#a1887f',
+            'Hulibete and Veera Masti (Tiger and Veeera Masti)': '#90a4ae',
+            'Ikkaimasti': '#9575cd',
+            'Jinke Bete (Deer)': '#aed581',
+            'Kote Kalaga': '#7986cb',
+            'Mahasati stone': '#ff8a65',
+            'Mukkaimasti': '#dce775',
+            'Nishadi': '#4db6ac',
+            'Okkai': '#fbc02d',
+            'Rifle Herostone ': '#b0bec5',
+            'Sati  ': '#f44336',
+            'Skirmish': '#64b5f6',
+            'Skirmish and Veera Masti': '#e1bee7',
+            'Skirmish with Robbers': '#ffb300',
+            'Turugol (Cattle)': '#388e3c',
+            'Unclear Cause Herostone': '#bdbdbd',
+            'Uralivu': '#ff7043',
+            'Uralivu and Turugol': '#8d6e63',
+            'Vanara (Monkey) Memorial': '#aeea00',
+            'Veera Masti': '#00bcd4',
+            'Veera Masti and (Hulibete ?)': '#cddc39',
+            'Veera Masti and Turugol': '#ff4081',
+            'Velevali': '#1976d2'
+        };
+        function style_HeroStonesofUnitedBengaluruDistrict_5_0(feature) {
+            // Check if any Type of Herostone filter is selected
+            var typeSel = document.getElementById('sel_TypeofHerostone');
+            var anyTypeSelected = false;
+            if (typeSel) {
+                for (var i = 0; i < typeSel.options.length; i++) {
+                    if (typeSel.options[i].selected && typeSel.options[i].value) {
+                        anyTypeSelected = true;
+                        break;
+                    }
+                }
+            }
+            var type = feature && feature.properties && feature.properties['Type of Herostone'];
+            // Indigo-violet blend
+            var color = (anyTypeSelected && herostoneTypeColors[type]) ? herostoneTypeColors[type] : 'url(#indigoVioletGradient)';
+            return {
+                pane: 'pane_HeroStonesofUnitedBengaluruDistrict_5',
+                radius: 5.5,
+                opacity: 1,
+                color: '#6c3fd3',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 0.5,
+                fillColor: color,
+                interactive: true,
+            }
+        }
+        map.createPane('pane_HeroStonesofUnitedBengaluruDistrict_5');
+        map.getPane('pane_HeroStonesofUnitedBengaluruDistrict_5').style.zIndex = 405;
+        map.getPane('pane_HeroStonesofUnitedBengaluruDistrict_5').style['mix-blend-mode'] = 'normal';
+        // --- MarkerClusterGroup for Herostones ---
+        // Add SVG gradient for indigo-violet blend
+        if (!document.getElementById('indigoVioletGradientDef')) {
+            var svgNS = 'http://www.w3.org/2000/svg';
+            var svg = document.createElementNS(svgNS, 'svg');
+            svg.setAttribute('width', 0);
+            svg.setAttribute('height', 0);
+            svg.innerHTML = `
+                <defs>
+                    <linearGradient id="indigoVioletGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#3f51b5"/>
+                        <stop offset="100%" stop-color="#8f00ff"/>
+                    </linearGradient>
+                </defs>
+            `;
+            svg.id = 'indigoVioletGradientDef';
+            document.body.appendChild(svg);
+        }
+        var markerClusterGroup = L.markerClusterGroup({
+            iconCreateFunction: function(cluster) {
+                // Use a CSS linear-gradient for the cluster background
+                return L.divIcon({
+                    html: '<div style="background:linear-gradient(135deg,#3f51b5 0%,#8f00ff 100%);color:#fff;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,0.10);">' + cluster.getChildCount() + '</div>',
+                    className: 'custom-cluster',
+                    iconSize: [32, 32]
+                });
+            }
+        });
+        var layer_HeroStonesofUnitedBengaluruDistrict_5 = new L.geoJson(json_HeroStonesofUnitedBengaluruDistrict_5, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_HeroStonesofUnitedBengaluruDistrict_5',
+            layerName: 'layer_HeroStonesofUnitedBengaluruDistrict_5',
+            pane: 'pane_HeroStonesofUnitedBengaluruDistrict_5',
+            onEachFeature: pop_HeroStonesofUnitedBengaluruDistrict_5,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.circleMarker(latlng, style_HeroStonesofUnitedBengaluruDistrict_5_0(feature));
+            },
+        });
+    markerClusterGroup.addLayer(layer_HeroStonesofUnitedBengaluruDistrict_5);
+    bounds_group.addLayer(markerClusterGroup);
+    map.addLayer(markerClusterGroup);
+    // Remove district shape layers from map by default
+    if (map.hasLayer(layer_MandyaDistrict_4)) map.removeLayer(layer_MandyaDistrict_4);
+    if (map.hasLayer(layer_BengaluruUrbanDistrict_3)) map.removeLayer(layer_BengaluruUrbanDistrict_3);
+    if (map.hasLayer(layer_BengaluruRuralDistrict_2)) map.removeLayer(layer_BengaluruRuralDistrict_2);
+    if (map.hasLayer(layer_RamanagaraDistrict_1)) map.removeLayer(layer_RamanagaraDistrict_1);
+        const url = {"Nominatim": "https://nominatim.openstreetmap.org/search?format=geojson&addressdetails=1&",
+        "BAN": "https://api-adresse.data.gouv.fr/search/?"}
+        var photonControl = L.control.photon({
+            url: url["Nominatim"],
+            feedbackLabel: '',
+            position: 'topright',
+            includePosition: true,
+            initial: true,
+            // resultsHandler: myHandler,
+        }).addTo(map);
+        photonControl._container.childNodes[0].style.borderRadius="10px"
+        // Create a variable to store the geoJSON data
+        var x = null;
+        // Create a variable to store the marker
+        var marker = null;
+        // Add an event listener to the Photon control to create a marker from the returned geoJSON data
+        var z = null;
+        photonControl.on('selected', function(e) {
+            console.log(photonControl.search.resultsContainer);
+            if (x != null) {
+                map.removeLayer(obj3.marker);
+                map.removeLayer(x);
+            }
+            obj2.gcd = e.choice;
+            x = L.geoJSON(obj2.gcd).addTo(map);
+            var label = typeof obj2.gcd.properties.label === 'undefined' ? obj2.gcd.properties.display_name : obj2.gcd.properties.label;
+            obj3.marker = L.marker(x.getLayers()[0].getLatLng()).bindPopup(label).addTo(map);
+            map.setView(x.getLayers()[0].getLatLng(), 17);
+            z = typeof e.choice.properties.label === 'undefined'? e.choice.properties.display_name : e.choice.properties.label;
+            console.log(e);
+            e.target.input.value = z;
+        });
+        var search = document.getElementsByClassName("leaflet-photon leaflet-control")[0];
+        search.classList.add("leaflet-control-search")
+        search.style.display = "flex";
+        search.style.backgroundColor="rgba(255,255,255,0.5)" 
+
+        // Créer le nouvel élément bouton
+        var button = document.createElement("div");
+        button.id = "gcd-button-control";
+        button.className = "gcd-gl-btn fa fa-search search-button";
+
+        // Ajouter le bouton à l'élément parent
+        search.insertBefore(button, search.firstChild);
+        // Add 'Show Points Within Boundary' button next to upload button
+        // Remove any existing 'Clip' button to avoid duplicates
+        var oldBtn = document.querySelector('.boundary-filter-btn');
+        if (oldBtn && oldBtn.parentNode) oldBtn.parentNode.removeChild(oldBtn);
+        var uploadBtn = document.querySelector('.kml-upload-btn, .geojson-upload-btn, input[type="file"]');
+        var boundaryBtn = document.createElement('button');
+        boundaryBtn.textContent = 'Clip';
+        boundaryBtn.className = 'boundary-filter-btn';
+        boundaryBtn.style.marginLeft = '8px';
+        boundaryBtn.style.padding = '4px 10px';
+        boundaryBtn.style.fontWeight = 'bold';
+        boundaryBtn.style.background = '#1976d2';
+        boundaryBtn.style.color = '#fff';
+        boundaryBtn.style.border = 'none';
+        boundaryBtn.style.borderRadius = '4px';
+        boundaryBtn.style.cursor = 'pointer';
+        var fileInput = document.querySelector('input[type="file"]');
+        if (fileInput && fileInput.parentNode) {
+            fileInput.parentNode.insertBefore(boundaryBtn, fileInput.nextSibling);
+        } else if (uploadBtn && uploadBtn.parentNode) {
+            uploadBtn.parentNode.insertBefore(boundaryBtn, uploadBtn.nextSibling);
+        } else {
+            // Fallback: append to menu if upload button not found
+            var menu = document.getElementById('menu');
+            if (menu) menu.appendChild(boundaryBtn);
+        }
+
+        // Store uploaded boundary geometry globally
+        window.uploadedBoundary = null;
+        // Listen for KML/GeoJSON upload and store boundary
+        document.addEventListener('kml-upload-success', function(e) {
+            if (e.detail && e.detail.layer) {
+                var geojson = e.detail.layer.toGeoJSON();
+                window.uploadedBoundary = geojson;
+            }
+        });
+        document.addEventListener('geojson-upload-success', function(e) {
+            if (e.detail && e.detail.layer) {
+                var geojson = e.detail.layer.toGeoJSON();
+                window.uploadedBoundary = geojson;
+            }
+        });
+
+        // Patch filterFunc to respect uploaded boundary
+        if (typeof filterFunc === 'function') {
+            var originalFilterFunc = filterFunc;
+            filterFunc = function() {
+                var boundary = window.uploadedBoundary;
+                if (boundary && boundary.features && boundary.features.length > 0) {
+                    var poly = boundary.features[0];
+                    var allFeatures = json_HeroStonesofUnitedBengaluruDistrict_5.features.slice(0);
+                    var filtered = [];
+                    for (var i = 0; i < allFeatures.length; i++) {
+                        var pt = turf.point(allFeatures[i].geometry.coordinates);
+                        if (turf.booleanPointInPolygon(pt, poly)) {
+                            filtered.push(allFeatures[i]);
+                        }
+                    }
+                    // Replace features with only those inside boundary
+                    json_HeroStonesofUnitedBengaluruDistrict_5.features = filtered;
+                    originalFilterFunc();
+                    // Restore all features for next filter
+                    json_HeroStonesofUnitedBengaluruDistrict_5.features = allFeatures;
+                } else {
+                    originalFilterFunc();
+                }
+            }
+        }
+
+        // Button click: filter points to within uploaded boundary
+        boundaryBtn.onclick = function() {
+            if (!window.uploadedBoundary) {
+                alert('Please upload a boundary file first.');
+                return;
+            }
+            filterFunc();
+        };
+        last = search.lastChild;
+        last.style.display = "none";
+        button.addEventListener("click", function (e) {
+            if (last.style.display === "none") {
+                last.style.display = "block";
+            } else {
+                last.style.display = "none";
+            }
+        });
+
+        // Only show district and OSM layers in the overlaysTree (remove Herostones layer from control)
+        var overlaysTree = [
+            {label: '<img src="legend/MandyaDistrict_4.png" /> Mandya District', layer: layer_MandyaDistrict_4},
+            {label: '<img src="legend/BengaluruUrbanDistrict_3.png" /> Bengaluru Urban District', layer: layer_BengaluruUrbanDistrict_3},
+            {label: '<img src="legend/BengaluruRuralDistrict_2.png" /> Bengaluru Rural District', layer: layer_BengaluruRuralDistrict_2},
+            {label: '<img src="legend/RamanagaraDistrict_1.png" /> Ramanagara District', layer: layer_RamanagaraDistrict_1},
+            {label: "OSM Standard", layer: layer_OSMStandard_0},
+        ];
+        var lay = L.control.layers.tree(null, overlaysTree,{
+            collapsed: true,
+            position: 'topright'
+        });
+        lay.addTo(map);
+        // Herostones layer is always visible and cannot be toggled in the UI
+
+
+    // --- Clustering ON/OFF Toggle Switch for HeroStones Layer ---
+    var herostonesPlainMode = false; // clustering enabled by default
+    var herostonesFilteredLayer = null;
+    // Add switch styles
+    var style = document.createElement('style');
+    style.innerHTML = `
+    .switch-toggle-wrap {
+        display: flex;
+        align-items: center;
+        margin: 0 0 10px 0;
+        padding: 10px 12px 0 12px;
+        font-family: 'Segoe UI', 'Arial', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        font-size: 1em;
+    }
+    .switch-label {
+        font-weight: bold;
+        color: maroon;
+        margin-right: 12px;
+        font-size: 1em;
+        letter-spacing: 0.2px;
+        font-family: 'Segoe UI', 'Arial', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    }
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 2.3em;
+        height: 1.2em;
+        margin-right: 10px;
+        vertical-align: middle;
+    }
+    .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+    .slider-switch {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: #ccc;
+        transition: .3s;
+        border-radius: 1.2em;
+    }
+    .slider-switch:before {
+        position: absolute;
+        content: "";
+        height: 0.9em;
+        width: 0.9em;
+        left: 0.15em;
+        bottom: 0.15em;
+        background: #fff;
+        transition: .3s;
+        border-radius: 50%;
+        box-shadow: 0 2px 6px rgba(128,0,0,0.10);
+    }
+    input:checked + .slider-switch {
+        background: maroon;
+    }
+    input:checked + .slider-switch:before {
+        transform: translateX(1.1em);
+    }
+    #cluster-toggle-status {
+        font-weight: 600;
+        margin-left: 12px;
+        color: #800000;
+        font-size: 1em;
+        font-family: 'Segoe UI', 'Arial', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    }
+    `;
+    document.head.appendChild(style);
+
+    // Insert the toggle switch above the slider bar filter section
+    function insertClusterSwitch() {
+        var menu = document.getElementById('menu');
+        if (!menu) return;
+        var wrap = document.createElement('div');
+        wrap.className = 'switch-toggle-wrap';
+        wrap.innerHTML = `
+            <span class="switch-label">Clustering</span>
+            <label class="switch">
+                <input type="checkbox" id="cluster-toggle-checkbox" checked>
+                <span class="slider-switch"></span>
+            </label>
+            <span id="cluster-toggle-status">ON</span>
+        `;
+        // Insert above the slider bar title (period-century-label)
+        var periodLabel = menu.querySelector('.period-century-label');
+        if (periodLabel) {
+            menu.insertBefore(wrap, periodLabel);
+        } else {
+            menu.insertBefore(wrap, menu.firstChild);
+        }
+        // Add event
+        var checkbox = document.getElementById('cluster-toggle-checkbox');
+        var status = document.getElementById('cluster-toggle-status');
+        checkbox.onchange = function() {
+            herostonesPlainMode = !checkbox.checked;
+            updateClusteringState();
+            status.textContent = checkbox.checked ? 'ON' : 'OFF';
+        };
+    }
+    // Call after DOMContentLoaded to ensure #menu exists
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', insertClusterSwitch);
+    } else {
+        insertClusterSwitch();
+    }
+
+    function updateClusteringState() {
+        var checkbox = document.getElementById('cluster-toggle-checkbox');
+        var status = document.getElementById('cluster-toggle-status');
+        if (herostonesPlainMode) {
+            if (map.hasLayer(markerClusterGroup)) map.removeLayer(markerClusterGroup);
+            if (herostonesFilteredLayer && map.hasLayer(herostonesFilteredLayer)) map.removeLayer(herostonesFilteredLayer);
+            if (map.hasLayer(layer_HeroStonesofUnitedBengaluruDistrict_5)) map.removeLayer(layer_HeroStonesofUnitedBengaluruDistrict_5);
+            if (herostonesFilteredLayer) {
+                map.addLayer(herostonesFilteredLayer);
+            } else {
+                map.addLayer(layer_HeroStonesofUnitedBengaluruDistrict_5);
+            }
+            if (status) status.textContent = 'OFF';
+            if (checkbox) checkbox.checked = false;
+        } else {
+            if (herostonesFilteredLayer && map.hasLayer(herostonesFilteredLayer)) map.removeLayer(herostonesFilteredLayer);
+            if (map.hasLayer(layer_HeroStonesofUnitedBengaluruDistrict_5)) map.removeLayer(layer_HeroStonesofUnitedBengaluruDistrict_5);
+            if (!map.hasLayer(markerClusterGroup)) map.addLayer(markerClusterGroup);
+            if (status) status.textContent = 'ON';
+            if (checkbox) checkbox.checked = true;
+        }
+    }
+
+    // Ensure filterFunc respects clustering state
+    var originalFilterFunc = filterFunc;
+    filterFunc = function() {
+        if (typeof markerClusterGroup !== 'undefined' && typeof layer_HeroStonesofUnitedBengaluruDistrict_5 !== 'undefined') {
+            markerClusterGroup.clearLayers();
+            if (map.hasLayer(layer_HeroStonesofUnitedBengaluruDistrict_5)) map.removeLayer(layer_HeroStonesofUnitedBengaluruDistrict_5);
+            if (herostonesFilteredLayer && map.hasLayer(herostonesFilteredLayer)) map.removeLayer(herostonesFilteredLayer);
+            var features = json_HeroStonesofUnitedBengaluruDistrict_5.features.slice(0);
+            try {
+                for (key in Filters) {
+                    keyS = key.replace(/[^a-zA-Z0-9_]/g, "");
+                    if (Filters[key] == "str" || Filters[key] == "bool") {
+                        var selection = [];
+                        var options = document.getElementById("sel_" + keyS).options;
+                        for (var i = 0; i < options.length; i++) {
+                            if (options[i].selected) selection.push(options[i].value);
+                        }
+                        try {
+                            if (key in features[0].properties) {
+                                for (i = features.length - 1; i >= 0; --i) {
+                                    if (selection.indexOf(features[i].properties[key]) < 0 && selection.length > 0) {
+                                        features.splice(i, 1);
+                                    }
+                                }
+                            }
+                        } catch (err) {}
+                    }
+                    if (Filters[key] == "int") {
+                        sliderVals = document.getElementById("div_" + keyS).noUiSlider.get();
+                        try {
+                            if (key in features[0].properties) {
+                                for (i = features.length - 1; i >= 0; --i) {
+                                    if (parseInt(features[i].properties[key]) < sliderVals[0] || parseInt(features[i].properties[key]) > sliderVals[1]) {
+                                        features.splice(i, 1);
+                                    }
+                                }
+                            }
+                        } catch (err) {}
+                    }
+                    if (Filters[key] == "real") {
+                        sliderVals = document.getElementById("div_" + keyS).noUiSlider.get();
+                        try {
+                            if (key in features[0].properties) {
+                                for (i = features.length - 1; i >= 0; --i) {
+                                    if (features[i].properties[key] < sliderVals[0] || features[i].properties[key] > sliderVals[1]) {
+                                        features.splice(i, 1);
+                                    }
+                                }
+                            }
+                        } catch (err) {}
+                    }
+                    if (Filters[key] == "date" || Filters[key] == "datetime" || Filters[key] == "time") {
+                        try {
+                            if (key in features[0].properties) {
+                                HTMLkey = key.replace(/[&\/\\#,+()$~%.'":*?<>{} ]/g, '');
+                                startdate = document.getElementById("dat_" + HTMLkey + "_date1").value.replace(" ", "T");
+                                enddate = document.getElementById("dat_" + HTMLkey + "_date2").value.replace(" ", "T");
+                                for (i = features.length - 1; i >= 0; --i) {
+                                    if (features[i].properties[key] < startdate || features[i].properties[key] > enddate) {
+                                        features.splice(i, 1);
+                                    }
+                                }
+                            }
+                        } catch (err) {}
+                    }
+                }
+            } catch (err) {}
+            var filteredLayer = new L.geoJson({type: 'FeatureCollection', features: features}, {
+                attribution: '',
+                interactive: true,
+                dataVar: 'json_HeroStonesofUnitedBengaluruDistrict_5',
+                layerName: 'layer_HeroStonesofUnitedBengaluruDistrict_5',
+                pane: 'pane_HeroStonesofUnitedBengaluruDistrict_5',
+                onEachFeature: pop_HeroStonesofUnitedBengaluruDistrict_5,
+                pointToLayer: function (feature, latlng) {
+                    var context = {
+                        feature: feature,
+                        variables: {}
+                    };
+                    return L.circleMarker(latlng, style_HeroStonesofUnitedBengaluruDistrict_5_0(feature));
+                },
+            });
+            herostonesFilteredLayer = filteredLayer;
+            if (herostonesPlainMode) {
+                if (map.hasLayer(markerClusterGroup)) map.removeLayer(markerClusterGroup);
+                map.addLayer(filteredLayer);
+            } else {
+                if (map.hasLayer(filteredLayer)) map.removeLayer(filteredLayer);
+                markerClusterGroup.addLayer(filteredLayer);
+                if (!map.hasLayer(markerClusterGroup)) map.addLayer(markerClusterGroup);
+            }
+        }
+        // ...existing code for other layers...
+    };
+    // Opacity slider removed
+    setBounds();
+    // No sidebar DOM construction needed, handled in HTML above
+
+        // --- Clustering toggle for HeroStones of United Bengaluru District ---
+        function isLayerOnMap(layer) {
+            return layer && map.hasLayer(layer);
+        }
+
+
+                // Sidebar toggle button logic (button outside sidebar, always visible)
+                var sidebarBtn = document.getElementById('sidebar-toggle');
+                var sidebarInner = document.getElementById('sidebar-inner');
+                var sidebarVisible = true;
+                sidebarBtn.onclick = function() {
+                    sidebarVisible = !sidebarVisible;
+                    if (sidebarVisible) {
+                        sidebarInner.style.transform = 'translateX(0)';
+                        sidebarBtn.classList.remove('closed');
+                        sidebarBtn.querySelector('.chevron i').classList.remove('fa-chevron-right');
+                        sidebarBtn.querySelector('.chevron i').classList.add('fa-chevron-left');
+                    } else {
+                        sidebarInner.style.transform = 'translateX(-100%)';
+                        sidebarBtn.classList.add('closed');
+                        sidebarBtn.querySelector('.chevron i').classList.remove('fa-chevron-left');
+                        sidebarBtn.querySelector('.chevron i').classList.add('fa-chevron-right');
+                    }
+                };
+                // Start with sidebar visible
+                sidebarInner.style.transform = 'translateX(0)';
+                sidebarBtn.querySelector('.chevron i').classList.remove('fa-chevron-right');
+                sidebarBtn.querySelector('.chevron i').classList.add('fa-chevron-left');
+        var Filters = {"Period (Century)": "int","With or Without Inscription": "str","District": "str","Type of Herostone": "str","Conservation Status": "str","Script of the Inscription": "str"};
+        function filterFunc() {
+                    // Custom: handle marker clustering for Herostones layer
+                    if (typeof markerClusterGroup !== 'undefined' && typeof layer_HeroStonesofUnitedBengaluruDistrict_5 !== 'undefined') {
+                        markerClusterGroup.clearLayers();
+                        var features = json_HeroStonesofUnitedBengaluruDistrict_5.features.slice(0);
+                        try {
+                            for (key in Filters) {
+                                keyS = key.replace(/[^a-zA-Z0-9_]/g, "");
+                                if (Filters[key] == "str" || Filters[key] == "bool") {
+                                    var selection = [];
+                                    var options = document.getElementById("sel_" + keyS).options;
+                                    for (var i = 0; i < options.length; i++) {
+                                        if (options[i].selected) selection.push(options[i].value);
+                                    }
+                                    try {
+                                        if (key in features[0].properties) {
+                                            for (i = features.length - 1; i >= 0; --i) {
+                                                if (selection.indexOf(features[i].properties[key]) < 0 && selection.length > 0) {
+                                                    features.splice(i, 1);
+                                                }
+                                            }
+                                        }
+                                    } catch (err) {}
+                                }
+                                if (Filters[key] == "int") {
+                                    sliderVals = document.getElementById("div_" + keyS).noUiSlider.get();
+                                    try {
+                                        if (key in features[0].properties) {
+                                            for (i = features.length - 1; i >= 0; --i) {
+                                                if (parseInt(features[i].properties[key]) < sliderVals[0] || parseInt(features[i].properties[key]) > sliderVals[1]) {
+                                                    features.splice(i, 1);
+                                                }
+                                            }
+                                        }
+                                    } catch (err) {}
+                                }
+                                if (Filters[key] == "real") {
+                                    sliderVals = document.getElementById("div_" + keyS).noUiSlider.get();
+                                    try {
+                                        if (key in features[0].properties) {
+                                            for (i = features.length - 1; i >= 0; --i) {
+                                                if (features[i].properties[key] < sliderVals[0] || features[i].properties[key] > sliderVals[1]) {
+                                                    features.splice(i, 1);
+                                                }
+                                            }
+                                        }
+                                    } catch (err) {}
+                                }
+                                if (Filters[key] == "date" || Filters[key] == "datetime" || Filters[key] == "time") {
+                                    try {
+                                        if (key in features[0].properties) {
+                                            HTMLkey = key.replace(/[&\/\\#,+()$~%.'":*?<>{} ]/g, '');
+                                            startdate = document.getElementById("dat_" + HTMLkey + "_date1").value.replace(" ", "T");
+                                            enddate = document.getElementById("dat_" + HTMLkey + "_date2").value.replace(" ", "T");
+                                            for (i = features.length - 1; i >= 0; --i) {
+                                                if (features[i].properties[key] < startdate || features[i].properties[key] > enddate) {
+                                                    features.splice(i, 1);
+                                                }
+                                            }
+                                        }
+                                    } catch (err) {}
+                                }
+                            }
+                        } catch (err) {}
+                        // Re-create filtered Herostones layer and add to cluster group
+                        var filteredLayer = new L.geoJson({type: 'FeatureCollection', features: features}, {
+                            attribution: '',
+                            interactive: true,
+                            dataVar: 'json_HeroStonesofUnitedBengaluruDistrict_5',
+                            layerName: 'layer_HeroStonesofUnitedBengaluruDistrict_5',
+                            pane: 'pane_HeroStonesofUnitedBengaluruDistrict_5',
+                            onEachFeature: pop_HeroStonesofUnitedBengaluruDistrict_5,
+                            pointToLayer: function (feature, latlng) {
+                                var context = {
+                                    feature: feature,
+                                    variables: {}
+                                };
+                                return L.circleMarker(latlng, style_HeroStonesofUnitedBengaluruDistrict_5_0(feature));
+                            },
+                        });
+                        markerClusterGroup.addLayer(filteredLayer);
+                    }
+                    // ...existing code for other layers...
+        }
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_PeriodCentury = document.createElement("div");
+            div_PeriodCentury.id = "div_PeriodCentury";
+            div_PeriodCentury.className = "slider";
+            var lab_PeriodCentury = document.createElement('div');
+            lab_PeriodCentury.innerHTML  = 'Period (Century): <span id="val_PeriodCentury"></span>';
+            lab_PeriodCentury.className = 'filterlabel period-century-label';
+            lab_PeriodCentury.style.position = 'relative';
+            document.getElementById("menu").appendChild(lab_PeriodCentury);
+            document.getElementById("menu").appendChild(div_PeriodCentury);
+            var sel_PeriodCentury = document.getElementById('div_PeriodCentury');
+            noUiSlider.create(sel_PeriodCentury, {
+                connect: true,
+                start: [8, 18],
+                step: 1,
+                format: wNumb({
+                    decimals: 0,
+                    }),
+                range: {
+                min: 8,
+                max: 18
+                }
+            });
+            sel_PeriodCentury.noUiSlider.on('update', function (values) {
+            filterVals =[];
+            for (value in values){
+            filterVals.push(parseInt(value))
+            }
+            val_PeriodCentury = document.getElementById('val_PeriodCentury');
+            val_PeriodCentury.innerHTML = values.join(' - ');
+                filterFunc()
+            });
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_WithorWithoutInscription = document.createElement('div');
+            div_WithorWithoutInscription.id = "div_WithorWithoutInscription";
+            div_WithorWithoutInscription.className= "filterselect";
+            document.getElementById("menu").appendChild(div_WithorWithoutInscription);
+            sel_WithorWithoutInscription = document.createElement('select');
+            sel_WithorWithoutInscription.setAttribute('multiple', 'multiple');
+            sel_WithorWithoutInscription.id = "sel_WithorWithoutInscription";
+            var WithorWithoutInscription_options_str = "<option value='' unselected></option>";
+            sel_WithorWithoutInscription.onchange = function(){filterFunc()};
+            WithorWithoutInscription_options_str  += '<option value="With Inscription">With Inscription</option>';
+            WithorWithoutInscription_options_str  += '<option value="Without Inscription">Without Inscription</option>';
+            sel_WithorWithoutInscription.innerHTML = WithorWithoutInscription_options_str;
+            var lab_WithorWithoutInscription = document.createElement('div');
+            lab_WithorWithoutInscription.innerHTML = 'With or Without Inscription';
+            lab_WithorWithoutInscription.className = 'filterlabel';
+            lab_WithorWithoutInscription.style.position = 'relative';
+            div_WithorWithoutInscription.appendChild(lab_WithorWithoutInscription);
+            div_WithorWithoutInscription.appendChild(sel_WithorWithoutInscription);
+                // Chip container for With or Without Inscription
+                var chipContainer_WithorWithoutInscription = document.createElement('div');
+                chipContainer_WithorWithoutInscription.className = 'chip-container';
+                chipContainer_WithorWithoutInscription.id = 'chips_WithorWithoutInscription';
+                div_WithorWithoutInscription.appendChild(chipContainer_WithorWithoutInscription);
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            // Multi-select dropdown with checkboxes will be applied by multiselect-dropdown.js
+            var div_District = document.createElement('div');
+            div_District.id = "div_District";
+            div_District.className= "filterselect";
+            document.getElementById("menu").appendChild(div_District);
+            sel_District = document.createElement('select');
+            sel_District.setAttribute('multiple', 'multiple');
+            sel_District.id = "sel_District";
+            var District_options_str = "<option value='' unselected></option>";
+            sel_District.onchange = function(){filterFunc()};
+            District_options_str  += '<option value="NULL">NULL</option>';
+            District_options_str  += '<option value="Bengaluru Rural">Bengaluru Rural</option>';
+            District_options_str  += '<option value="Bengaluru Urban">Bengaluru Urban</option>';
+            District_options_str  += '<option value="Mandya">Mandya</option>';
+            District_options_str  += '<option value="Ramanagara">Ramanagara</option>';
+            sel_District.innerHTML = District_options_str;
+            var lab_District = document.createElement('div');
+            lab_District.innerHTML = 'District';
+            lab_District.className = 'filterlabel';
+            lab_District.style.position = 'relative';
+            div_District.appendChild(lab_District);
+            div_District.appendChild(sel_District);
+                // Chip container for District
+                var chipContainer_District = document.createElement('div');
+                chipContainer_District.className = 'chip-container';
+                chipContainer_District.id = 'chips_District';
+                div_District.appendChild(chipContainer_District);
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            // Multi-select dropdown with checkboxes will be applied by multiselect-dropdown.js
+            var div_TypeofHerostone = document.createElement('div');
+            div_TypeofHerostone.id = "div_TypeofHerostone";
+            div_TypeofHerostone.className= "filterselect";
+            document.getElementById("menu").appendChild(div_TypeofHerostone);
+            sel_TypeofHerostone = document.createElement('select');
+            sel_TypeofHerostone.setAttribute('multiple', 'multiple');
+            sel_TypeofHerostone.id = "sel_TypeofHerostone";
+            var TypeofHerostone_options_str = "<option value='' unselected></option>";
+            sel_TypeofHerostone.onchange = function(){filterFunc()};
+            TypeofHerostone_options_str  += '<option value="Aatma Balidana (Self Sacrifice) Herostone">Aatma Balidana (Self Sacrifice) Herostone</option>';
+            TypeofHerostone_options_str  += '<option value="Beeragallu (Kuruba)">Beeragallu (Kuruba)</option>';
+            TypeofHerostone_options_str  += '<option value="Broken Herostone">Broken Herostone</option>';
+            TypeofHerostone_options_str  += '<option value="Handibete (Boar)">Handibete (Boar)</option>';
+            TypeofHerostone_options_str  += '<option value="Havubete (Snake)">Havubete (Snake)</option>';
+            TypeofHerostone_options_str  += '<option value="Herostone">Herostone</option>';
+            TypeofHerostone_options_str  += '<option value="Hulibete (Tiger)">Hulibete (Tiger)</option>';
+            TypeofHerostone_options_str  += '<option value="Hulibete and Turugol (Tiger and Cattle)">Hulibete and Turugol (Tiger and Cattle)</option>';
+            TypeofHerostone_options_str  += '<option value="Hulibete and Veera Masti (Tiger and Veeera Masti)">Hulibete and Veera Masti (Tiger and Veeera Masti)</option>';
+            TypeofHerostone_options_str  += '<option value="Ikkaimasti">Ikkaimasti</option>';
+            TypeofHerostone_options_str  += '<option value="Jinke Bete (Deer)">Jinke Bete (Deer)</option>';
+            TypeofHerostone_options_str  += '<option value="Kote Kalaga">Kote Kalaga</option>';
+            TypeofHerostone_options_str  += '<option value="Mahasati stone">Mahasati stone</option>';
+            TypeofHerostone_options_str  += '<option value="Mukkaimasti">Mukkaimasti</option>';
+            TypeofHerostone_options_str  += '<option value="Nishadi">Nishadi</option>';
+            TypeofHerostone_options_str  += '<option value="Okkai">Okkai</option>';
+            TypeofHerostone_options_str  += '<option value="Rifle Herostone ">Rifle Herostone </option>';
+            TypeofHerostone_options_str  += '<option value="Sati  ">Sati  </option>';
+            TypeofHerostone_options_str  += '<option value="Skirmish">Skirmish</option>';
+            TypeofHerostone_options_str  += '<option value="Skirmish and Veera Masti">Skirmish and Veera Masti</option>';
+            TypeofHerostone_options_str  += '<option value="Skirmish with Robbers">Skirmish with Robbers</option>';
+            TypeofHerostone_options_str  += '<option value="Turugol (Cattle)">Turugol (Cattle)</option>';
+            TypeofHerostone_options_str  += '<option value="Unclear Cause Herostone">Unclear Cause Herostone</option>';
+            TypeofHerostone_options_str  += '<option value="Uralivu">Uralivu</option>';
+            TypeofHerostone_options_str  += '<option value="Uralivu and Turugol">Uralivu and Turugol</option>';
+            TypeofHerostone_options_str  += '<option value="Vanara (Monkey) Memorial">Vanara (Monkey) Memorial</option>';
+            TypeofHerostone_options_str  += '<option value="Veera Masti">Veera Masti</option>';
+            TypeofHerostone_options_str  += '<option value="Veera Masti and (Hulibete ?)">Veera Masti and (Hulibete ?)</option>';
+            TypeofHerostone_options_str  += '<option value="Veera Masti and Turugol">Veera Masti and Turugol</option>';
+            TypeofHerostone_options_str  += '<option value="Velevali">Velevali</option>';
+            sel_TypeofHerostone.innerHTML = TypeofHerostone_options_str;
+            var lab_TypeofHerostone = document.createElement('div');
+            lab_TypeofHerostone.innerHTML = 'Type of Herostone';
+            lab_TypeofHerostone.className = 'filterlabel';
+            lab_TypeofHerostone.style.position = 'relative';
+            div_TypeofHerostone.appendChild(lab_TypeofHerostone);
+            div_TypeofHerostone.appendChild(sel_TypeofHerostone);
+                // Chip container for Type of Herostone
+                var chipContainer_TypeofHerostone = document.createElement('div');
+                chipContainer_TypeofHerostone.className = 'chip-container';
+                chipContainer_TypeofHerostone.id = 'chips_TypeofHerostone';
+                div_TypeofHerostone.appendChild(chipContainer_TypeofHerostone);
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            // Multi-select dropdown with checkboxes will be applied by multiselect-dropdown.js
+            var div_ConservationStatus = document.createElement('div');
+            div_ConservationStatus.id = "div_ConservationStatus";
+            div_ConservationStatus.className= "filterselect";
+            document.getElementById("menu").appendChild(div_ConservationStatus);
+            sel_ConservationStatus = document.createElement('select');
+            sel_ConservationStatus.setAttribute('multiple', 'multiple');
+            sel_ConservationStatus.id = "sel_ConservationStatus";
+            var ConservationStatus_options_str = "<option value='' unselected></option>";
+            sel_ConservationStatus.onchange = function(){filterFunc()};
+            ConservationStatus_options_str  += '<option value="Buried">Buried</option>';
+            ConservationStatus_options_str  += '<option value="Critically Endangered">Critically Endangered</option>';
+            ConservationStatus_options_str  += '<option value="Endangered">Endangered</option>';
+            ConservationStatus_options_str  += '<option value="Intact">Intact</option>';
+            ConservationStatus_options_str  += '<option value="Known to be destroyed">Known to be destroyed</option>';
+            ConservationStatus_options_str  += '<option value="Least Concern">Least Concern</option>';
+            ConservationStatus_options_str  += '<option value="Unknown">Unknown</option>';
+            ConservationStatus_options_str  += '<option value="Yet to Veriefy">Yet to Veriefy</option>';
+            sel_ConservationStatus.innerHTML = ConservationStatus_options_str;
+            var lab_ConservationStatus = document.createElement('div');
+            lab_ConservationStatus.innerHTML = 'Conservation Status';
+            lab_ConservationStatus.className = 'filterlabel';
+            lab_ConservationStatus.style.position = 'relative';
+            div_ConservationStatus.appendChild(lab_ConservationStatus);
+            div_ConservationStatus.appendChild(sel_ConservationStatus);
+                // Chip container for Conservation Status
+                var chipContainer_ConservationStatus = document.createElement('div');
+                chipContainer_ConservationStatus.className = 'chip-container';
+                chipContainer_ConservationStatus.id = 'chips_ConservationStatus';
+                div_ConservationStatus.appendChild(chipContainer_ConservationStatus);
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            // Multi-select dropdown with checkboxes will be applied by multiselect-dropdown.js
+            var div_ScriptoftheInscription = document.createElement('div');
+            div_ScriptoftheInscription.id = "div_ScriptoftheInscription";
+            div_ScriptoftheInscription.className= "filterselect";
+            document.getElementById("menu").appendChild(div_ScriptoftheInscription);
+            sel_ScriptoftheInscription = document.createElement('select');
+            sel_ScriptoftheInscription.setAttribute('multiple', 'multiple');
+            sel_ScriptoftheInscription.id = "sel_ScriptoftheInscription";
+            var ScriptoftheInscription_options_str = "<option value='' unselected></option>";
+            sel_ScriptoftheInscription.onchange = function(){filterFunc()};
+            ScriptoftheInscription_options_str  += '<option value="NULL">NULL</option>';
+            ScriptoftheInscription_options_str  += '<option value="Granta & Tamil">Granta & Tamil</option>';
+            ScriptoftheInscription_options_str  += '<option value="Kannada">Kannada</option>';
+            ScriptoftheInscription_options_str  += '<option value="NA - WOI">NA - WOI</option>';
+            ScriptoftheInscription_options_str  += '<option value="Tamil">Tamil</option>';
+            sel_ScriptoftheInscription.innerHTML = ScriptoftheInscription_options_str;
+            var lab_ScriptoftheInscription = document.createElement('div');
+            lab_ScriptoftheInscription.innerHTML = 'Script of the Inscription';
+            lab_ScriptoftheInscription.className = 'filterlabel';
+            lab_ScriptoftheInscription.style.position = 'relative';
+            div_ScriptoftheInscription.appendChild(lab_ScriptoftheInscription);
+            div_ScriptoftheInscription.appendChild(sel_ScriptoftheInscription);
+                // Chip container for Script of the Inscription
+                var chipContainer_ScriptoftheInscription = document.createElement('div');
+                chipContainer_ScriptoftheInscription.className = 'chip-container';
+                chipContainer_ScriptoftheInscription.id = 'chips_ScriptoftheInscription';
+                div_ScriptoftheInscription.appendChild(chipContainer_ScriptoftheInscription);
+            // Add a single common Clear Filters button below all filters
+            var clearAllBtn = document.createElement('button');
+            clearAllBtn.type = 'button';
+            clearAllBtn.textContent = 'Clear Filters';
+            clearAllBtn.className = 'clear-filter-btn clear-all';
+            clearAllBtn.removeAttribute('style');
+            clearAllBtn.onclick = function() {
+                if (window.sel_PeriodCentury && window.sel_PeriodCentury.noUiSlider) {
+                    window.sel_PeriodCentury.noUiSlider.reset();
+                }
+                var selectIds = [
+                    'sel_WithorWithoutInscription',
+                    'sel_District',
+                    'sel_TypeofHerostone',
+                    'sel_ConservationStatus',
+                    'sel_ScriptoftheInscription'
+                ];
+                selectIds.forEach(function(id) {
+                    var select = document.getElementById(id);
+                    if (select) {
+                        Array.from(select.options).forEach(function(opt) { opt.selected = false; });
+                        var wrapper = select.parentNode.querySelector('.ms-dropdown-wrapper');
+                        if (wrapper) {
+                            var checkboxes = wrapper.querySelectorAll('input[type=checkbox]');
+                            checkboxes.forEach(function(cb) { cb.checked = false; });
+                            var btn = wrapper.querySelector('.ms-dropdown-btn');
+                            if (btn) btn.textContent = 'Select...';
+                        }
+                    }
+                });
+                if (typeof enableChipFilters === 'function') enableChipFilters();
+                filterFunc();
+            };
+            document.getElementById("menu").appendChild(clearAllBtn);
+
+            // Add 'Show Points Within Boundary' button below upload button in filter menu
+            // Remove duplicate boundary button from filter menu. The 'Clip' button is now only beside the upload button.
+
+            // Store uploaded boundary geometry globally
+            window.uploadedBoundary = null;
+            document.addEventListener('kml-upload-success', function(e) {
+                if (e.detail && e.detail.layer) {
+                    var geojson = e.detail.layer.toGeoJSON();
+                    window.uploadedBoundary = geojson;
+                }
+            });
+            document.addEventListener('geojson-upload-success', function(e) {
+                if (e.detail && e.detail.layer) {
+                    var geojson = e.detail.layer.toGeoJSON();
+                    window.uploadedBoundary = geojson;
+                }
+            });
+
+            // Patch filterFunc to respect uploaded boundary
+            if (typeof filterFunc === 'function') {
+                var originalFilterFunc = filterFunc;
+                filterFunc = function() {
+                    var boundary = window.uploadedBoundary;
+                    if (boundary && boundary.features && boundary.features.length > 0) {
+                        var selectedIdxs = getSelectedBoundaryIndexes();
+                        if (selectedIdxs.length === 0) {
+                            originalFilterFunc();
+                            return;
+                        }
+                        var polys = selectedIdxs.map(function(idx) { return boundary.features[idx]; });
+                        var allFeatures = json_HeroStonesofUnitedBengaluruDistrict_5.features.slice(0);
+                        var filtered = [];
+                        for (var i = 0; i < allFeatures.length; i++) {
+                            var pt = turf.point(allFeatures[i].geometry.coordinates);
+                            for (var j = 0; j < polys.length; j++) {
+                                if (turf.booleanPointInPolygon(pt, polys[j])) {
+                                    filtered.push(allFeatures[i]);
+                                    break;
+                                }
+                            }
+                        }
+                        json_HeroStonesofUnitedBengaluruDistrict_5.features = filtered;
+                        originalFilterFunc();
+                        json_HeroStonesofUnitedBengaluruDistrict_5.features = allFeatures;
+                    } else {
+                        originalFilterFunc();
+                    }
+                }
+            }
+
+            boundaryBtn.onclick = function() {
+                if (!window.uploadedBoundary) {
+                    alert('Please upload a boundary file first.');
+                    return;
+                }
+                filterFunc();
+            };
+            // Multi-select dropdown will be applied by multiselect-dropdown.js
+                // Chip functionality moved to custom.js
+    </script>
+    <script src="js/multiselect-dropdown.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+    <script src="https://unpkg.com/leaflet-omnivore@0.3.4/leaflet-omnivore.min.js"></script>
+    <script src="js/kml-upload.js"></script>
+    <script src="js/custom.js"></script>
+        <!-- Credit Section -->
+
+        </body>
+</html>

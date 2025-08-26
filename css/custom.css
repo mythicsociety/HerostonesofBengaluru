@@ -1,0 +1,80 @@
+/* Add top padding to filter panel */
+#menu {
+	padding-top: 15px;
+	padding-left: 10px;
+	padding-right: 10px;
+	width: 320px;
+	border-right: 2px solid #800000;
+}
+/* Style for the common Clear Filters button */
+.clear-filter-btn.clear-all {
+	border: 1.5px solid #800000;
+	background: #fffefed1;
+	color: #444;
+	font-size: 10pt;
+	font-weight: 500;
+	border-radius: 6px;
+	padding: 6px 22px;
+	margin: 24px auto 0 auto;
+	display: block;
+	width: fit-content;
+	transition: background 0.2s, color 0.2s, border 0.2s;
+	box-shadow: 0 1px 2px rgba(128,0,0,0.06);
+	text-align: center;
+	cursor: pointer;
+}
+.clear-filter-btn.clear-all:hover {
+	background: #a0a0a0;
+	color: #222;
+	border-color: #800000;
+}
+/* Chip styles for filter selections */
+.chip-container {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin: 4px 0 8px 8px;
+}
+.chip {
+	display: inline-flex;
+	align-items: center;
+	background: rgba(211,211,211,0.28);
+	color: #800000;
+	border-radius: 2.5px;
+	padding: 1px 7px 1px 7px;
+	font-size: 0.95em;
+	font-weight: 500;
+	border: 1px solid #b0b0b0;
+	box-shadow: 0 1px 2px rgba(128,0,0,0.10);
+	cursor: default;
+	margin: 2px 4px 2px 0;
+	transition: background 0.2s, color 0.2s;
+	gap: 5px;
+	min-height: 18px;
+	max-height: 18px;
+	line-height: 16px;
+}
+.chip .chip-remove {
+	font-size: 0.9em;
+	color: #b71c1c;
+	background: none;
+	border: none;
+	cursor: pointer;
+	outline: none;
+	padding: 0 2px;
+	border-radius: 4px;
+	transition: background 0.2s, color 0.2s;
+	height: 16px;
+	width: 16px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.chip:hover {
+	background: rgba(189,189,189,0.5);
+	color: #800000;
+}
+.chip .chip-remove:hover {
+	color: #fff;
+	background: #b71c1c;
+}
