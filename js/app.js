@@ -1,0 +1,565 @@
+// React hooks
+const { useEffect, useRef, useState } = React;
+
+// --- Marker/cluster color options and SVG helper ---
+const COLOR_OPTIONS = [
+  { name: 'Violet', gradient: 'linear-gradient(135deg,#a259c4 0%,#7b2ff2 100%)', solid: '#a259c4' },
+  { name: 'Blue', gradient: 'linear-gradient(135deg,#2196f3 0%,#21cbf3 100%)', solid: '#2196f3' },
+  { name: 'Green', gradient: 'linear-gradient(135deg,#56ab2f 0%,#a8e063 100%)', solid: '#56ab2f' },
+  { name: 'Orange', gradient: 'linear-gradient(135deg,#f7971e 0%,#ffd200 100%)', solid: '#f7971e' },
+  { name: 'Red', gradient: 'linear-gradient(135deg,#f85032 0%,#e73827 100%)', solid: '#f85032' },
+  { name: 'Teal', gradient: 'linear-gradient(135deg,#136a8a 0%,#267871 100%)', solid: '#136a8a' },
+  { name: 'Pink', gradient: 'linear-gradient(135deg,#f953c6 0%,#b91d73 100%)', solid: '#f953c6' }
+];
+
+// --- CSV Fetch Helper (using PapaParse for all CSVs) ---
+function fetchCSV(url) {
+  return new Promise((resolve, reject) => {
+    if (!window.Papa) {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js';
+      script.onload = () => fetchCSV(url).then(resolve).catch(reject);
+      document.head.appendChild(script);
+      return;
+    }
+    window.Papa.parse(url, {
+      download: true,
+      header: true,
+      complete: results => resolve(results.data),
+      error: err => reject(err)
+    });
+  });
+}
+
+// Helper function to highlight map features
+function highlightMapFeature(type, item, idx) {
+  // Try to find the marker on the map and open its popup, zoom in, and add a highlight effect
+  if (!window.L || !window.mapRef || !window.mapRef.current) return;
+  const map = window.mapRef.current;
+  let lat = item.Latitude || item.latitude || item.Lat || item.lat;
+  let lng = item.Longitude || item.longitude || item.Lon || item.lon || item.Long || item.lng;
+  if (typeof lat === 'string') lat = parseFloat(lat);
+  if (typeof lng === 'string' ) lng = parseFloat(lng);
+  if (isNaN(lat) || isNaN(lng)) return;
+  // Zoom to marker
+  map.setView([lat, lng], 17, { animate: true });
+  // Try to open the marker's popup if found
+  if (Array.isArray(window._allMarkers)) {
+    for (const marker of window._allMarkers) {
+      const markerLatLng = marker.getLatLng && marker.getLatLng();
+      if (markerLatLng && Math.abs(markerLatLng.lat - lat) < 1e-6 && Math.abs(markerLatLng.lng - lng) < 1e-6) {
+        if (marker.openPopup) marker.openPopup();
+        break;
+      }
+    }
+  }
+  // Add a highlight circle
+  if (window._featureHighlightLayer) {
+    map.removeLayer(window._featureHighlightLayer);
+    window._featureHighlightLayer = null;
+  }
+  window._featureHighlightLayer = window.L.circle([lat, lng], {
+    radius: 40,
+    color: '#ff0',
+    weight: 4,
+    fillColor: '#ff0',
+    fillOpacity: 0.25,
+    pane: 'markerPane',
+    interactive: false
+  }).addTo(map);
+  // Remove highlight after 2.5s
+  setTimeout(() => {
+    if (window._featureHighlightLayer) {
+      map.removeLayer(window._featureHighlightLayer);
+      window._featureHighlightLayer = null;
+    }
+  }, 2500);
+}
+
+// Make highlightMapFeature globally available
+window.highlightMapFeature = highlightMapFeature;
+
+// Helper functions for marker icons
+function getMarkerSVG(shape, size, color, opacity) {
+  switch (shape) {
+    case 'hexagon': {
+      // Regular hexagon centered in 18x18 viewBox
+      const hexPoints = "9,2 16,6.5 16,14 9,17 2,14 2,6.5";
+      return `<svg width="${size}" height="${size}" viewBox="0 0 18 18"><polygon points="${hexPoints}" fill="${color}" fill-opacity="${opacity}"/></svg>`;
+    }
+    case 'triangle':
+      return `<svg width="${size}" height="${size}" viewBox="0 0 18 18"><polygon points="9,3 16,15 2,15" fill="${color}" fill-opacity="${opacity}"/></svg>`;
+    case 'square':
+      return `<svg width="${size}" height="${size}" viewBox="0 0 18 18"><rect x="3" y="3" width="12" height="12" fill="${color}" fill-opacity="${opacity}"/></svg>`;
+    default:
+      return `<svg width="${size}" height="${size}" viewBox="0 0 18 18"><circle cx="9" cy="9" r="8" fill="${color}" fill-opacity="${opacity}"/></svg>`;
+  }
+}
+
+function createDivIcon(shape, markerSize, markerColorIdx, markerOpacity, type) {
+  const baseSize = 18; // Use a fixed base SVG size
+  const color = COLOR_OPTIONS[markerColorIdx]?.solid || COLOR_OPTIONS[0].solid;
+  let svg = '';
+  if (type === 'inscription') {
+    svg = `<svg class="marker-svg" width="${baseSize}" height="${baseSize}" viewBox="0 0 18 18"><rect x="3" y="3" width="12" height="12" fill="${color}" fill-opacity="${markerOpacity}"/></svg>`;
+  } else if (shape === 'hexagon') {
+    const hexPoints = "9,2 16,6.5 16,14 9,17 2,14 2,6.5";
+    svg = `<svg class="marker-svg" width="${baseSize}" height="${baseSize}" viewBox="0 0 18 18"><polygon points="${hexPoints}" fill="${color}" fill-opacity="${markerOpacity}"/></svg>`;
+  } else if (shape === 'triangle') {
+    svg = `<svg class="marker-svg" width="${baseSize}" height="${baseSize}" viewBox="0 0 18 18"><polygon points="9,3 16,15 2,15" fill="${color}" fill-opacity="${markerOpacity}"/></svg>`;
+  } else if (shape === 'square') {
+    svg = `<svg class="marker-svg" width="${baseSize}" height="${baseSize}" viewBox="0 0 18 18"><rect x="3" y="3" width="12" height="12" fill="${color}" fill-opacity="${markerOpacity}"/></svg>`;
+  } else {
+    svg = `<svg class="marker-svg" width="${baseSize}" height="${baseSize}" viewBox="0 0 18 18"><circle cx="9" cy="9" r="8" fill="${color}" fill-opacity="${markerOpacity}"/></svg>`;
+  }
+  // Use CSS transform: scale to resize
+  const scale = (markerSize || baseSize) / baseSize;
+  return L.divIcon({
+    className: 'custom-marker',
+    iconSize: [baseSize, baseSize],
+    iconAnchor: [baseSize / 2, baseSize / 2],
+    html: `<div style="transform:scale(${scale});transform-origin:center;">${svg}</div>`
+  });
+}
+
+function createClusterIcon(count, markerColorIdx, type) {
+  const size = count < 10 ? 36 : count < 100 ? 48 : 60;
+  // Use solid color for clusters to match marker color
+  let color;
+  if (type === 'herostone' || type === 'inscription' || type === 'temple') {
+    color = COLOR_OPTIONS[markerColorIdx]?.solid || COLOR_OPTIONS[0].solid;
+  } else {
+    color = COLOR_OPTIONS[markerColorIdx]?.solid || COLOR_OPTIONS[0].solid;
+  }
+  // Font size logic
+  let fontSize;
+  const countLength = String(count).length;
+  if (size === 36) {
+    fontSize = countLength === 1 ? 13 : countLength === 2 ? 10 : 8;
+  } else if (size === 48) {
+    fontSize = countLength === 1 ? 17 : countLength === 2 ? 13 : 10;
+  } else {
+    fontSize = countLength === 1 ? 22 : countLength === 2 ? 16 : 12;
+  }
+  
+  // Different icon shape based on type
+  if (type === 'temple') {
+    // Hexagon for temples
+    const hexPoints = "18,4 32,12 32,28 18,36 4,28 4,12";
+    return L.divIcon({
+      html: `<svg width="${size}" height="${size}" viewBox="0 0 36 36"><polygon points="${hexPoints}" fill="${color}" stroke="#fff" stroke-width="1.5"/><text x="18" y="20" text-anchor="middle" font-size="${fontSize}" fill="#111" font-weight="bold" alignment-baseline="middle" dominant-baseline="middle" font-family="Arial, 'Helvetica Neue', Helvetica, sans-serif">${count}</text></svg>`,
+      className: 'temple-cluster-icon',
+      iconSize: [size, size]
+    });
+  } else if (type === 'inscription') {
+    // Square for inscriptions
+    return L.divIcon({
+      html: `<svg width="${size}" height="${size}" viewBox="0 0 36 36"><rect x="3" y="3" width="30" height="30" fill="${color}" stroke="#fff" stroke-width="1.5"/><text x="18" y="18" text-anchor="middle" font-size="${fontSize}" fill="#111" font-weight="bold" alignment-baseline="middle" dominant-baseline="middle" font-family="Arial, 'Helvetica Neue', Helvetica, sans-serif">${count}</text></svg>`,
+      className: 'inscription-cluster-icon',
+      iconSize: [size, size]
+    });
+  } else {
+    // Circle for herostones and default
+    return L.divIcon({
+      html: `<svg width="${size}" height="${size}" viewBox="0 0 36 36"><circle cx="18" cy="18" r="15" fill="${color}" stroke="#fff" stroke-width="2"/><text x="18" y="18" text-anchor="middle" font-size="${fontSize}" fill="#111" font-weight="bold" alignment-baseline="middle" dominant-baseline="middle" font-family="Arial, 'Helvetica Neue', Helvetica, sans-serif">${count}</text></svg>`,
+      className: 'herostone-cluster-icon',
+      iconSize: [size, size]
+    });
+  }
+}
+
+// Helper function to get coordinates from different possible field names
+function getLatLng(item, type) {
+  // For temples, use 'Latitude' and 'Longitude' columns explicitly
+  if (type === 'temple') {
+    let lat = item.Latitude ?? item.latitude ?? item.Lat ?? item.lat;
+    let lng = item.Longitude ?? item.longitude ?? item.Lon ?? item.lon ?? item.Long ?? item.lng;
+    return window.safeCoords(lat, lng);
+  } else {
+    let lat = item.Lat ?? item.lat ?? item.latitude ?? item.Latitude;
+    let lng = item.Long ?? item.Lng ?? item.lng ?? item.lon ?? item.Lon ?? item.longitude ?? item.Longitude;
+    return window.safeCoords(lat, lng);
+  }
+}
+
+// Helper function for tooltip content
+function getTooltip(item) {
+  let tooltip = '';
+  if (item["Type of Herostone"]) tooltip += `<b>${item["Type of Herostone"]}</b><br/>`;
+  if (item["Period"]) tooltip += `Period: ${item["Period"]}<br/>`;
+  if (item["Village"]) tooltip += `Village: ${item["Village"]}<br/>`;
+  if (item["Script of the Inscription"]) {
+    tooltip += `Script: ${item["Script of the Inscription"]}`;
+  } else if (item["script"]) {
+    tooltip += `Script: ${item["script"]}`;
+  }
+  return tooltip;
+}
+
+// Helper function for temple tooltips
+function getTempleTooltip(item) {
+  let tooltip = '';
+  if (item["Temple"]) tooltip += `<b>${item["Temple"]}</b><br/>`;
+  if (item["Village"]) tooltip += `Village: ${item["Village"]}<br/>`;
+  if (item["Taluk"]) tooltip += `Taluk: ${item["Taluk"]}<br/>`;
+  if (item["District"]) tooltip += `District: ${item["District"]}<br/>`;
+  if (item["Century"]) tooltip += `Century: ${item["Century"]}<br/>`;
+  if (item["Online Link To Documentation"]) tooltip += `<a href="${item["Online Link To Documentation"]}" target="_blank" rel="noopener noreferrer">Documentation</a>`;
+  return tooltip;
+}
+
+// Function to generate temple sidebar HTML
+function getTempleSidebar(item) {
+  if (!item) return '';
+  
+  let html = `
+    <h6 class="mt-2">${item.Temple || 'Temple Details'}</h6>
+    <div class="mb-3">
+      <small class="text-muted">${item.Village || ''}, ${item.Taluk || ''}, ${item.District || ''}</small>
+    </div>
+  `;
+  
+  if (item.Century) {
+    html += `<p><strong>Period:</strong> ${item.Century}</p>`;
+  }
+  
+  if (item.Architecture) {
+    html += `<p><strong>Architecture:</strong> ${item.Architecture}</p>`;
+  }
+  
+  if (item.Description) {
+    html += `<p>${item.Description}</p>`;
+  }
+  
+  if (item["Online Link To Documentation"]) {
+    html += `<p><a href="${item["Online Link To Documentation"]}" target="_blank" class="btn btn-sm btn-outline-primary">View Documentation</a></p>`;
+  }
+  
+  return html;
+}
+
+// Make this function available globally
+window.getTempleSidebar = getTempleSidebar;
+
+function App() {
+  // --- Spatial filter version state (must be first!) ---
+  const [spatialFilterVersion, setSpatialFilterVersion] = useState(0);
+
+  // --- Data state ---
+  const [herostones, setHerostones] = useState([]);
+  const [temples, setTemples] = useState([]);
+  const [inscriptions, setInscriptions] = useState([]);
+
+  // --- UI state ---
+  const [showHerostones, setShowHerostones] = useState(true);
+  const [showTemples, setShowTemples] = useState(true); // temples ON by default
+  const [showInscriptions, setShowInscriptions] = useState(true); // inscriptions ON by default
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedSite, setSelectedSite] = useState(null);
+  // Sidebar width state for resizable sidebar (lifted to App)
+  const [sidebarWidth, setSidebarWidth] = useState(350);
+
+  // --- Marker/Map state ---
+  const [opacity, setOpacity] = useState(1); // 0-1
+  const [basemap, setBasemap] = useState('default');
+  const [selectedDistricts, setSelectedDistricts] = useState([]);
+  const [selectedTaluks, setSelectedTaluks] = useState([]);
+  // Per-layer clustering toggles
+  const [clusteringHerostones, setClusteringHerostones] = useState(false);
+  const [clusteringInscriptions, setClusteringInscriptions] = useState(false);
+  const [clusteringTemples, setClusteringTemples] = useState(false);
+  
+  // Per-layer marker/cluster customization state
+  const [herostoneColor, setHerostoneColor] = useState(0);
+  const [herostoneSize, setHerostoneSize] = useState(6);
+  const [herostoneOpacity, setHerostoneOpacity] = useState(0.6);
+  const [inscriptionColor, setInscriptionColor] = useState(1);
+  const [inscriptionSize, setInscriptionSize] = useState(6);
+  const [inscriptionOpacity, setInscriptionOpacity] = useState(0.6);
+  const [templeColor, setTempleColor] = useState(4);
+  const [templeSize, setTempleSize] = useState(6);
+  const [templeOpacity, setTempleOpacity] = useState(0.6);
+  
+  // States for administrative boundaries
+  const [districtLayers, setDistrictLayers] = useState({});
+  const [talukLayers, setTalukLayers] = useState({});
+  const [districtBoundariesVisible, setDistrictBoundariesVisible] = useState(false);
+  const [talukBoundariesVisible, setTalukBoundariesVisible] = useState(false);
+
+  // State to control AI popup visibility
+  const [showAIPopup, setShowAIPopup] = useState(false);
+  const [chatInput, setChatInput] = useState("");
+  const [chatResults, setChatResults] = useState([]);
+  const [aiMode, setAiMode] = useState('rule'); // 'rule' or 'webllm'
+  const [loadingLLM, setLoadingLLM] = useState(false);
+  
+  // Handler for chat submit
+  async function handleChatSubmit(e) {
+    e.preventDefault();
+    if (!chatInput.trim()) return;
+    
+    // Simple response for demo
+    setChatResults(r => [...r, { 
+      user: chatInput, 
+      ai: 'This is a demonstration of the chat interface. Full AI functionality available in the complete app.',
+      mode: 'rule' 
+    }]);
+    setChatInput("");
+  }
+
+  // Load data from Google Sheets using PapaParse
+  const [dataError, setDataError] = useState(null);
+  useEffect(() => {
+    const url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRHCFT5jA5VPInkSC9eqeDSJ43pEbAh0zFoz31CFn876VzFuUFobc9nTc1J068ilw/pub?gid=115817771&single=true&output=csv';
+    const url2 = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSXXg4VXox3vI4MDq72UImHgMdTADZVFDX0kSHIZqqw0ZAq2FTaj2JHXkvvBdksKDh_2ysT9AseQqUl/pub?output=csv';
+    const url3 = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRmsBKzbk4bkTTFvv3CUEmTnQd6mqQfdkixHmMkdH4jYpQTMj7w-3SXPeryptu9aXEjtw3EQxJpHK3d/pub?output=csv';
+    let cancelled = false;
+    async function loadData() {
+      try {
+        const [herostonesData, templesData, inscriptionsData] = await Promise.all([
+          fetchCSV(url),
+          fetchCSV(url2),
+          fetchCSV(url3)
+        ]);
+        if (!cancelled) {
+          setHerostones(herostonesData);
+          setTemples(templesData);
+          setInscriptions(inscriptionsData);
+            window.herostones = herostonesData;
+            window.temples = templesData;
+            window.inscriptions = inscriptionsData;
+        }
+      } catch (e) {
+        console.error('Failed to load one or more datasets', e);
+        if (!cancelled) setDataError('Failed to load one or more datasets');
+      }
+    }
+    loadData();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Deselect site when sidebar is closed
+  useEffect(() => {
+    if (!sidebarOpen) setSelectedSite(null);
+  }, [sidebarOpen]);
+
+  // Force map update function - useful for rerendering after filter changes
+  const forceMapUpdate = () => {
+    setSpatialFilterVersion(v => v + 1);
+  };
+  // Make it globally available
+  window.forceMapUpdate = forceMapUpdate;
+
+  console.log('App rendered. selectedDistricts:', selectedDistricts, 'selectedTaluks:', selectedTaluks);
+
+  return (
+    <>
+      {/* Navbar Component */}
+      {window.NavBar && <window.NavBar />}
+      
+      <div className="container mt-3">
+        {/* Floating AI Button (bottom right) */}
+        <button
+          className="btn btn-theme d-flex align-items-center justify-content-center"
+          style={{
+            position: 'fixed',
+            bottom: 30,
+            right: sidebarOpen ? (sidebarWidth + 30) : 30,
+            borderRadius: '50%',
+            width: 54,
+            height: 54,
+            fontSize: '2rem',
+            background: '#fff',
+            color: '#72383d',
+            border: '2.5px solid #72383d',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.13)',
+            zIndex: 2100,
+            transition: 'right 0.3s, bottom 0.2s'
+          }}
+          title="Ask Bengaluru Heritage AI"
+          onClick={() => setShowAIPopup(true)}
+          aria-label="Ask Bengaluru Heritage AI"
+        >
+          <i className="fa fa-robot" aria-hidden="true"></i>
+        </button>
+        
+        {/* AI Chat Popup - using AIPopup Component */}
+        {window.AIPopup && (
+          <window.AIPopup 
+            show={showAIPopup}
+            onClose={() => setShowAIPopup(false)}
+            chatInput={chatInput}
+            setChatInput={setChatInput}
+            chatResults={chatResults}
+            handleChatSubmit={handleChatSubmit}
+            aiMode={aiMode}
+            setAiMode={setAiMode}
+            loadingLLM={loadingLLM}
+            setLoadingLLM={setLoadingLLM}
+          />
+        )}
+        
+        <div
+          className="more-info-btn-container"
+          style={{
+            position: 'absolute',
+            right: sidebarOpen ? `${sidebarWidth}px` : '30px',
+            zIndex: 1100,
+            transition: sidebarOpen ? 'none' : 'right 0.3s'
+          }}
+        >
+          <button
+            className="btn btn-theme d-flex align-items-center justify-content-center"
+            style={{
+              height: '37.5px',
+              width: '37.5px',
+              borderRadius: '50%',
+              padding: 0,
+              fontSize: '1.65rem',
+              minWidth: 'unset',
+              border: '3px solid #fff',
+              boxShadow: '0 0 0 4px #fff, 0 1px 4px rgba(0,0,0,0.10)'
+            }}
+            aria-label="More Info"
+            onClick={() => setSidebarOpen(o => !o)}
+          >
+            <i className="fa fa-info" aria-hidden="true" style={{display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', lineHeight: '37.5px', textAlign: 'center'}}></i>
+          </button>
+        </div>
+        
+        {/* Set map background to white if basemap opacity is 0 */}
+        <style>{`#map { background: ${opacity === 0 ? '#fff' : 'transparent'} !important; }`}</style>
+        
+        <div style={{background: opacity === 0 ? '#fff' : 'transparent', borderRadius: 8}}>
+          {/* SidebarPanel Component */}
+          <SidebarPanel
+            showHerostones={showHerostones}
+            setShowHerostones={setShowHerostones}
+            showTemples={showTemples}
+            setShowTemples={setShowTemples}
+            showInscriptions={showInscriptions}
+            setShowInscriptions={setShowInscriptions}
+            opacity={opacity}
+            setOpacity={setOpacity}
+            basemap={basemap}
+            setBasemap={setBasemap}
+            clusteringHerostones={clusteringHerostones}
+            setClusteringHerostones={setClusteringHerostones}
+            clusteringInscriptions={clusteringInscriptions}
+            setClusteringInscriptions={setClusteringInscriptions}
+            clusteringTemples={clusteringTemples}
+            setClusteringTemples={setClusteringTemples}
+            herostoneColor={herostoneColor}
+            setHerostoneColor={setHerostoneColor}
+            herostoneSize={herostoneSize}
+            setHerostoneSize={setHerostoneSize}
+            herostoneOpacity={herostoneOpacity}
+            setHerostoneOpacity={setHerostoneOpacity}
+            inscriptionColor={inscriptionColor}
+            setInscriptionColor={setInscriptionColor}
+            inscriptionSize={inscriptionSize}
+            setInscriptionSize={setInscriptionSize}
+            inscriptionOpacity={inscriptionOpacity}
+            setInscriptionOpacity={setInscriptionOpacity}
+            templeColor={templeColor}
+            setTempleColor={setTempleColor}
+            templeSize={templeSize}
+            setTempleSize={setTempleSize}
+            templeOpacity={templeOpacity}
+            setTempleOpacity={setTempleOpacity}
+            // Administrative boundaries props 
+            districtLayers={districtLayers}
+            talukLayers={setTalukLayers}
+            districtBoundariesVisible={districtBoundariesVisible}
+            setDistrictBoundariesVisible={setDistrictBoundariesVisible}
+            talukBoundariesVisible={talukBoundariesVisible}
+            setTalukBoundariesVisible={setTalukBoundariesVisible}
+            selectedDistricts={selectedDistricts}
+            setSelectedDistricts={setSelectedDistricts}
+            selectedTaluks={selectedTaluks}
+            setSelectedTaluks={setSelectedTaluks}
+          />
+          
+          {/* MapComponent */}
+          <MapComponent
+            herostones={herostones}
+            temples={temples}
+            inscriptions={inscriptions}
+            showHerostones={showHerostones}
+            showTemples={showTemples}
+            showInscriptions={showInscriptions}
+            opacity={opacity}
+            basemap={basemap}
+            clusteringHerostones={clusteringHerostones}
+            clusteringInscriptions={clusteringInscriptions}
+            clusteringTemples={clusteringTemples}
+            herostoneColor={herostoneColor}
+            herostoneSize={herostoneSize}
+            herostoneOpacity={herostoneOpacity}
+            inscriptionColor={inscriptionColor}
+            inscriptionSize={inscriptionSize}
+            inscriptionOpacity={inscriptionOpacity}
+            templeColor={templeColor}
+            templeSize={templeSize}
+            templeOpacity={templeOpacity}
+            setSelectedSite={setSelectedSite}
+            setSidebarOpen={setSidebarOpen}
+            selectedDistricts={selectedDistricts}
+            selectedTaluks={selectedTaluks}
+          />
+          
+          {/* Right Sidebar */}
+          {window.RightSidebar ? (
+            <window.RightSidebar
+              selectedSite={selectedSite}
+              show={sidebarOpen}
+              onClose={() => setSidebarOpen(false)}
+              herostones={herostones}
+              inscriptions={inscriptions}
+              temples={temples}
+              showHerostones={showHerostones}
+              showInscriptions={showInscriptions}
+              showTemples={showTemples}
+              setSelectedSite={setSelectedSite}
+              highlightMapFeature={highlightMapFeature}
+              spatialFilterVersion={spatialFilterVersion}
+              sidebarWidth={sidebarWidth}
+              setSidebarWidth={setSidebarWidth}
+            />
+          ) : (
+            <div className="offcanvas offcanvas-end show" tabIndex="-1" 
+              style={{
+                visibility: sidebarOpen ? 'visible' : 'hidden', 
+                width: sidebarWidth, 
+                zIndex: 1050, 
+                height: '100vh', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                transition: 'width 0.1s'
+              }}
+            >
+              <div className="offcanvas-header">
+                <h5 className="offcanvas-title">Heritage Info</h5>
+                <button type="button" className="btn-close" aria-label="Close" onClick={() => setSidebarOpen(false)}></button>
+              </div>
+              <div className="offcanvas-body p-0">
+                <div className="p-3">
+                  <h6>About The Mythic Society</h6>
+                  <p>The Mythic Society is a historic academic institution in Bengaluru, founded in 1909, dedicated to research and preservation of Indian history, culture, and heritage.</p>
+                  <p><b>Bengaluru Inscriptions 3D Digital Conservation Project:</b> Digitally conserves 1500 ancient stone inscriptions from Bengaluru and Ramanagara, making them accessible for research and public knowledge.</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+// Render the app
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>
+);

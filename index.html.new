@@ -47,7 +47,6 @@
   <!-- Load components before app.js -->
   <script type="text/babel" src="js/components/NavBar/NavBar.jsx"></script>
   <script type="text/babel" src="js/components/LeftSidebar/LayersPanel.jsx"></script>
-  <script type="text/babel" src="js/components/LeftSidebar/FiltersPanel.jsx"></script>
   <script type="text/babel" src="js/components/LeftSidebar/SidebarPanel.jsx"></script>
   <script type="text/babel" src="js/components/Utils/AIPopup.jsx"></script>
   <script type="text/babel" src="js/components/Utils/ChartComponent.jsx"></script>

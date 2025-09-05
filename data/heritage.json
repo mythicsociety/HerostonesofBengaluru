@@ -1,0 +1,23 @@
+[
+  {
+    "name": "Bangalore Palace",
+    "lat": 12.9987,
+    "lng": 77.5921,
+    "info": "Built in 1878, Tudor-style architecture.",
+    "value": 5
+  },
+  {
+    "name": "Tipu Sultan's Summer Palace",
+    "lat": 12.9592,
+    "lng": 77.5736,
+    "info": "18th-century Indo-Islamic architecture.",
+    "value": 3
+  },
+  {
+    "name": "Vidhana Soudha",
+    "lat": 12.9797,
+    "lng": 77.5912,
+    "info": "Seat of the state legislature of Karnataka.",
+    "value": 4
+  }
+]

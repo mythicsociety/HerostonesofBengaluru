@@ -1,2 +1,1 @@
-# Herostones-of-Bengaluru
-WebGIS
+# heritageWebGIS1
