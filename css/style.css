@@ -1,202 +1,285 @@
-/* Toggle Switch (Slider) */
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 44px;
-  height: 24px;
-}
-
-.switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #fff;
-  border: 1px solid #bbb;
-  transition: .4s;
-  border-radius: 24px;
-}
-
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 18px;
-  width: 18px;
-  left: 3px;
-  bottom: 3px;
-  background-color: white;
-  transition: .4s;
-  border-radius: 50%;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.10);
-}
-
-.switch input:checked + .slider {
-  background-color: var(--theme-color);
-}
-
-.switch input:checked + .slider:before {
-  transform: translateX(20px);
-}
-.leaflet-sidebar-content {
-  background: #fff;
-  border-left: 1.5px solid #d1bfc2;
-  min-height: 100%;
-  user-select: none;
-  -webkit-user-select: none;
-  caret-color: transparent;
-}
-
-.leaflet-sidebar {
-  top: 30px !important;
-  height: calc(100vh - 90px - 15px) !important;
-  position: absolute !important;
-  border-right: 1.5px solid #d1bfc2;
-  box-shadow: 1px 0 0 0 #d1bfc2;
-  z-index: 1002;
-}
-
-.leaflet-control-zoom {
-  margin-top: 40px !important;
-}
-
-.more-info-btn-container {
-  top: 100px !important;
-}
-.navbar-logo {
-  height: 60px;
-  width: 60px;
-  margin-right: 0px;
-  border-radius: 50%;
-  background: #fff;
-  border: 3px solid #fff;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
-  object-fit: cover;
-  display: inline-block;
-  vertical-align: middle;
-}
-.navbar {
-  background: var(--theme-color) !important;
-  color: #fff !important;
-  border-radius: 0 !important;
-  margin-bottom: 0 !important;
-  width: 100vw !important;
-  min-height: 85px;
-  height: 85px;
+/* Left panel vertical tabs */
+#panelLeft .sidepanel-tabs-wrapper {
+  height: 100%;
+  width: 56px;
+  background: #f5f5f7;
+  border-right: 1px solid #eee;
   display: flex;
-  align-items: center;
-  padding: 5px 1.5rem !important;
-  box-sizing: border-box;
-  position: relative;
-  z-index: 1200;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 1;
 }
-.navbar * {
-  color: #fff !important;
-}
-
-h2 {
-  color: #fff;
-  margin: 0;
+#panelLeft .sidepanel-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   padding: 0;
+  margin: 0;
+  list-style: none;
+  height: 100%;
+  justify-content: center;
 }
-/* Left sidebar tab icons color */
-.leaflet-sidebar-tabs .fa,
-.leaflet-sidebar-tabs .fas,
-.leaflet-sidebar-tabs .fa-solid {
-  color: var(--theme-color) !important;
-}
-/* Theme color */
-:root {
-  --theme-color: rgb(114, 56, 61);
-}
-.offcanvas.offcanvas-end {
-  top: 75px !important; /* 15px lower */
-  bottom: 0 !important;
-  height: auto !important;
-  max-height: calc(100vh - 75px) !important;
-}
-
-
-
-h2 {
-  color: var(--theme-color);
-}
-
-
-.btn-theme {
-  background: var(--theme-color) !important;
-  border: 1.5px solid var(--theme-color) !important;
-  color: #fff !important;
-  font-weight: bold;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+#panelLeft .sidepanel-tab {
+  width: 100%;
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0;
-  transition: color 0.2s;
+}
+#panelLeft .sidebar-tab-link {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 1.1em;
+  color: #222;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  border-radius: 0;
+}
+#panelLeft .sidebar-tab-link.active, #panelLeft .sidebar-tab-link:focus {
+  background: #e0e0e0;
+  font-weight: bold;
+}
+#panelLeft .sidepanel-content-wrapper {
+  margin-left: 56px;
+  height: 100%;
+}
+/* Left panel vertical toggle button styles */
+#panelLeftToggle {
+  outline: none;
+  border: none;
+  background: #2b2b2b;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  border-radius: 0 5px 5px 0;
+  position: absolute;
+  right: -32px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1002;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+#panelLeftToggle:hover {
+  background: #444;
+}
+#panelLeftArrow {
+  font-size: 1.5em;
+  transition: transform 0.2s;
+}
+#panelLeft {
+  position: absolute !important;
+  left: -320px;
+  top: 56px;
+  height: calc(100vh - 56px);
+  width: 320px;
+  background: #fff;
+  box-shadow: 2px 0 8px rgba(0,0,0,0.08);
+  z-index: 1001;
+  transition: left 0.2s;
+  display: block;
+}
+/* Right panel vertical toggle button styles */
+#panelRightToggle {
+  outline: none;
+  border: none;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  border-radius: 0 24px 24px 0;
+  position: absolute;
+  left: -18px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1002;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+#panelRightToggle:hover {
+  background: #f0f0f0;
+}
+#panelRightArrow {
+  font-size: 1.5em;
+  transition: transform 0.2s;
+}
+/* Custom thin scrollbars for scrollable areas */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #b0b0b0 #f5f5f7;
 }
 
-.btn-theme:hover {
-  background: var(--theme-color) !important;
-  color: #000 !important;
-  border: 1.5px solid var(--theme-color) !important;
+/* For Webkit browsers: all scrollable elements */
+*::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
 }
-
-.btn-theme:active, .btn-theme:focus {
-  background: var(--theme-color) !important;
+*::-webkit-scrollbar-thumb {
+  background: #b0b0b0;
+  border-radius: 6px;
+}
+*::-webkit-scrollbar-track {
+  background: #f5f5f7;
+  border-radius: 6px;
+}
+/* District chips styling */
+.district-chip {
+  background: #0074D9 !important;
   color: #fff !important;
-  border: 1.5px solid var(--theme-color) !important;
+  border-radius: 16px;
+  font-size: 0.95em;
+  margin-right: 2px;
+  margin-bottom: 2px;
+  padding: 2px 8px 2px 8px;
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 5px;
 }
+/* District dropdown icon styling */
+#districtMultiSelect .dropdown-icon {
+  margin-left: 8px;
+  display: flex;
+  align-items: center;
+}
+/* Removed sidebar and tab styles */
 
-.nav-tabs .nav-link.active {
-  background: var(--theme-color) !important;
+/* Hide tab icons when sidebar is expanded */
+#leftSidebarTabs.flex-row .tab-icon {
+  display: none !important;
+}
+/* Ensure dropdown options wrap text */
+.feature-dropdown option {
+  white-space: normal;
+  word-break: break-word;
+}
+.marker-cluster-herostones {
+  background: #0074D9 !important;
+  border: 2px solid #fff !important;
+}
+.marker-cluster-inscriptions {
+  background: #FF851B !important;
+  border: 2px solid #fff !important;
+}
+.marker-cluster-temples {
+  background: #e63946 !important;
+  border: 2px solid #fff !important;
+}
+.marker-cluster-herostones div,
+.marker-cluster-inscriptions div,
+.marker-cluster-temples div {
   color: #fff !important;
-  border-color: var(--theme-color) var(--theme-color) #fff !important;
 }
 
-.nav-tabs .nav-link {
-  color: var(--theme-color);
-}
-
-
-body, html {
+body {
+  margin: 0;
   height: 100vh;
   width: 100vw;
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: #f8f9fa;
-  overflow-x: hidden;
-  overflow-y: auto;
-  box-sizing: border-box;
 }
 
+#appContainer {
+  display: flex;
+  height: calc(100vh - 56px); /* 56px is default Bootstrap navbar height */
+  width: 100vw;
+}
+
+.sidebar {
+  width: 250px;
+  background: white;
+  overflow-y: auto;
+  padding: 10px 10px 10px 20px;
+  z-index: 1000;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.3);
+  flex-shrink: 0;
+  position: relative;
+  height: 100%;
+}
+
+#mainContent {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+}
 
 #map {
-  user-select: none;
-  -webkit-user-select: none;
-  caret-color: transparent;
-  position: absolute;
-  top: 60px; /* leave space for navbar/header */
-  left: 0;
-  width: 100vw;
-  height: calc(100vh - 60px);
-  z-index: 1;
-  max-width: 100vw;
-  max-height: calc(100vh - 60px);
-  overflow: hidden;
+  flex: 1 1 0;
+  width: 100%;
+  min-height: 0;
+  height: auto;
+  position: relative;
 }
 
-.container {
-  padding: 0;
-  margin: 0;
-  max-width: 100vw;
-  box-sizing: border-box;
-  overflow-x: auto;
+#query-section {
+  width: 100%;
+  min-width: 0;
+  height: 0;
+  background: transparent;
+  box-shadow: none;
+  z-index: 100;
+  overflow-y: hidden;
+  position: relative;
+  transition: height 0.2s, background 0.2s;
+  display: none;
+}
+
+/* Query section resize handle with grip icon only, no border */
+#query-section-resize-handle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 16px;
+  cursor: ns-resize;
+  z-index: 101;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none !important;
+  box-shadow: none !important;
+}
+#query-section-resize-handle .grip-icon {
+  width: 32px;
+  height: 10px;
+  display: block;
+  background: none;
+}
+
+#tabContent { padding-top:10px; }
+.nav-link { cursor:pointer; }
+
+/* Add spacing between bottom of tabs and start of panel sections */
+#leftSidebarTabs {
+  margin-bottom: 15px !important;
+}
+
+/* Move Leaflet zoom control down by 20px */
+.leaflet-control-zoom {
+  top: 70px !important;
+}
+
+/* Remove any border or shadow from resize handle and header bar */
+#query-section-resize-handle {
+  border: none !important;
+  box-shadow: none !important;
+}
+#queryHeaderBar {
+  border-top: none !important;
 }

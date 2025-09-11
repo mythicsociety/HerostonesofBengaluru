@@ -1,0 +1,9 @@
+.marker-blink {
+  animation: markerBlinkAnim 0.5s linear infinite;
+}
+
+@keyframes markerBlinkAnim {
+  0% { filter: brightness(2) drop-shadow(0 0 8px #ff0); }
+  50% { filter: brightness(1) drop-shadow(0 0 16px #ff0); }
+  100% { filter: brightness(2) drop-shadow(0 0 8px #ff0); }
+}

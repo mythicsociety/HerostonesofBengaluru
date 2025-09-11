@@ -1,0 +1,18 @@
+/* Minimal placeholder for leaflet-sidepanel.css. Replace with official plugin CSS for full functionality. */
+.sidepanel { position: fixed; top: 0; bottom: 0; width: 320px; background: #fff; z-index: 1200; box-shadow: 0 0 12px rgba(0,0,0,0.15); transition: right 0.3s, left 0.3s; }
+.sidepanel-dark { background: #222 !important; color: #eee !important; }
+.sidepanel-dark .sidepanel-tabs-wrapper { border-bottom: 1px solid #444; }
+.sidepanel-dark .sidepanel-tab a { color: #eee !important; }
+.sidepanel-dark .sidepanel-tab a.active { color: #fff !important; font-weight: bold; }
+.sidepanel-dark .sidepanel-content { background: #222 !important; color: #eee !important; }
+.sidepanel-dark .sidepanel-toggle-button { background: #444 !important; color: #fff !important; }
+.sidepanel[aria-hidden="true"] { display: none; }
+.sidepanel[aria-label="side panel"] { display: block; }
+.sidepanel-inner-wrapper { height: 100%; display: flex; flex-direction: column; }
+.sidepanel-tabs-wrapper { border-bottom: 1px solid #eee; }
+.sidepanel-tabs { list-style: none; padding: 0; margin: 0; display: flex; }
+.sidepanel-tab { margin-right: 8px; }
+.sidepanel-tab a { display: block; padding: 8px 16px; text-decoration: none; color: #333; }
+.sidepanel-tab-content { padding: 16px; }
+.sidepanel-toggle-container { position: absolute; top: 10px; right: 10px; }
+.sidepanel-toggle-button { background: #0074D9; color: #fff; border: none; border-radius: 4px; padding: 6px 12px; cursor: pointer; }
