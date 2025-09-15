@@ -1,0 +1,298 @@
+/* Always keep panels below navbar, regardless of media query */
+#panelLeft, #panelRight {
+  top: 75px !important;
+  height: calc(100vh - 75px) !important;
+}
+/* responsive.css - Responsive styles for WebGIS application */
+
+/* Base responsive adjustments for all devices */
+html, body {
+  overflow-x: hidden;
+}
+
+/* Touch-friendly classes for mobile UI.js */
+.touch-friendly .leaflet-control-layers-toggle,
+.touch-friendly .leaflet-bar a {
+  min-width: 36px;
+  min-height: 36px;
+}
+
+.touch-target {
+  min-height: 40px;
+  min-width: 40px;
+}
+
+/* Mobile panel styling */
+.mobile-panel {
+  max-width: 85% !important;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.3) !important;
+}
+
+.small-screen .panel-header {
+  position: sticky;
+  top: 0;
+  background-color: #fff;
+  z-index: 1000;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Medium devices (tablets, less than 992px) */
+@media (max-width: 991.98px) {
+  /* Make panels narrower on tablets */
+  #panelLeft, #panelRight {
+    width: 280px !important;
+  }
+  
+  /* Adjust controls to fit on tablets */
+  .leaflet-control-layers, .leaflet-control-zoom {
+    margin-right: 5px !important;
+  }
+  
+  /* Make sure dropdowns don't overflow */
+  .custom-dropdown-list {
+    max-height: 50vh !important;
+    overflow-y: auto;
+  }
+  
+  /* Ensure query section is responsive */
+  #queryResizable {
+    flex-direction: column !important;
+  }
+  
+  #queryControls {
+    width: 100% !important;
+    max-width: none !important;
+    border-right: none !important;
+    border-bottom: 1px solid #eee;
+    height: auto !important;
+    min-height: 200px;
+  }
+  
+  #queryResults {
+    width: 100% !important;
+    max-height: 50vh;
+  }
+}
+
+/* Small devices (landscape phones, less than 768px) */
+@media (max-width: 767.98px) {
+  /* Make panels even narrower on phones */
+  #panelLeft, #panelRight {
+    width: 250px !important;
+  }
+  
+  /* Ensure panels are off-screen by default on mobile */
+  #panelLeft.mobile-hidden {
+    left: -250px !important;
+  }
+  
+  #panelRight.mobile-hidden {
+    right: -250px !important;
+  }
+  
+  /* Adjust toggle buttons for better touch */
+  #panelLeftToggle, #panelRightToggle {
+    width: 28px !important;
+    height: 40px !important;
+  }
+  
+  /* Make form inputs larger for touch */
+  .form-control, .btn, .custom-dropdown button {
+    padding: 0.5rem 0.75rem !important;
+    font-size: 1rem !important;
+  }
+  
+  /* Ensure checkboxes and switches are easy to tap */
+  .form-check-input {
+    width: 1.25em !important;
+    height: 1.25em !important;
+    margin-top: 0.2em !important;
+  }
+  
+  /* Make dropdown options easier to tap */
+  .dropdown-item {
+    padding: 10px 12px !important;
+  }
+  
+  /* Adjust query section height */
+  #query-section {
+    height: 60vh !important; /* When open */
+  }
+  
+  /* Reduce font size for headers */
+  h4 {
+    font-size: 1.3rem !important;
+  }
+  
+  h5 {
+    font-size: 1.1rem !important;
+  }
+}
+
+/* Extra small devices (portrait phones, less than 576px) */
+@media (max-width: 575.98px) {
+  /* Further adjustments for very small screens */
+  .navbar-brand {
+    font-size: 1.1rem !important;
+    max-width: 200px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+  
+  /* Stack form controls vertically */
+  .form-check.d-flex {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    margin-bottom: 0.75rem !important;
+  }
+  
+  .form-check .form-switch {
+    margin-left: 0 !important;
+    margin-top: 0.25rem !important;
+  }
+  
+  /* Ensure popup content is readable on small screens */
+  .leaflet-popup-content {
+    max-width: 200px !important;
+    font-size: 0.85rem !important;
+  }
+  
+  /* Make cluster markers larger for touch */
+  .marker-cluster div {
+    width: 36px !important;
+    height: 36px !important;
+    line-height: 36px !important;
+    font-size: 1.1rem !important;
+  }
+  
+  /* Adjust tab navigation */
+  .sidepanel-tabs {
+    padding: 0 5px !important;
+  }
+  
+  .sidepanel-tab {
+    margin-right: 5px !important;
+  }
+}
+
+/* Landscape orientation specific */
+@media (max-height: 500px) and (orientation: landscape) {
+  /* Optimize for landscape orientation on small devices */
+  .navbar {
+    padding: 0.25rem 1rem !important;
+    min-height: 40px !important;
+  }
+  
+  #appContainer {
+    height: calc(100vh - 40px) !important;
+  }
+  
+  #panelLeft, #panelRight {
+    top: 40px !important;
+    height: calc(100vh - 40px) !important;
+  }
+  
+  /* Make tabs more compact */
+  .sidepanel-tab {
+    height: 40px !important;
+  }
+  
+  /* Reduce paddings */
+  .sidepanel-content {
+    padding: 10px !important;
+  }
+  
+  /* Adjust form layouts to be more horizontal */
+  #sidepanel-layers > div,
+  #sidepanel-filters > div {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+  }
+  
+  #sidepanel-layers > div > div,
+  #sidepanel-filters > div > div {
+    flex: 1 1 45% !important;
+    min-width: 200px !important;
+  }
+  
+  /* Make section headings smaller */
+  h5 {
+    margin-bottom: 0.5rem !important;
+  }
+}
+
+/* Touch-specific improvements */
+@media (pointer: coarse) {
+  /* Larger hit areas for touch screens */
+  .sidepanel-tab {
+    min-height: 44px !important;
+  }
+  
+  .leaflet-control-zoom a {
+    height: 36px !important;
+    width: 36px !important;
+    line-height: 36px !important;
+  }
+  
+  /* Ensure all controls have proper touch targets */
+  button, .btn, .form-control, select, .form-check-label, .form-check-input {
+    min-height: 38px !important;
+  }
+  
+  /* Larger toggle buttons for touch */
+  #panelLeftToggle, #panelRightToggle {
+    min-width: 32px !important;
+    min-height: 44px !important;
+  }
+  
+  /* Give more space to checkboxes */
+  .form-check {
+    padding-left: 1.75rem !important;
+  }
+  
+  .form-check-input {
+    margin-left: -1.75rem !important;
+  }
+}
+
+/* High pixel density screen adjustments */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  /* Optimize icons and graphics for Retina displays */
+  .custom-marker div {
+    border-width: 1px !important;
+  }
+  
+  /* Ensure hairline borders are visible */
+  .custom-dropdown-list, .sidepanel {
+    border-width: 0.5px !important;
+  }
+}
+
+/* Print-specific styles */
+@media print {
+  /* Hide UI controls when printing */
+  #panelLeft, #panelRight, #query-section, 
+  .leaflet-control-container, .navbar {
+    display: none !important;
+  }
+  
+  /* Make map take full page */
+  #map {
+    height: 100vh !important;
+    width: 100vw !important;
+  }
+  
+  /* Include legend for printed map */
+  .map-print-legend {
+    display: block !important;
+    position: absolute !important;
+    bottom: 10px !important;
+    right: 10px !important;
+    background: white !important;
+    padding: 10px !important;
+    border: 1px solid #ccc !important;
+    z-index: 1000 !important;
+  }
+}

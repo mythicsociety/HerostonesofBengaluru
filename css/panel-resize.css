@@ -1,0 +1,35 @@
+/* Draggable panel edge highlight and cursor */
+.panel-drag-edge {
+  position: absolute;
+  top: 0;
+  width: 6px;
+  height: 100%;
+  z-index: 1103;
+  background: transparent;
+  cursor: ew-resize;
+  transition: background 0.2s;
+}
+.panel-drag-edge:hover {
+  background: #2196f3;
+  box-shadow: none;
+}
+
+/* Thin blue line for highlight (3px) */
+.panel-drag-edge:hover::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  background: #2196f3;
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+
+/* For accessibility, add focus style */
+.panel-drag-edge:focus {
+  outline: 2px solid #2196f3;
+}

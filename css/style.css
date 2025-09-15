@@ -1,3 +1,56 @@
+/* Query button style for white color */
+#queryBtn {
+  background: #72383d !important;
+  color: #fff !important;
+  border-color: #fff !important;
+}
+#queryBtn .bi {
+  color: #fff !important;
+}
+/* Navbar custom styles for dark background */
+.navbar {
+  color: #fff !important;
+}
+.navbar .navbar-brand,
+.navbar .navbar-nav .nav-link,
+.navbar .navbar-toggler,
+.navbar .navbar-toggler-icon {
+  color: #fff !important;
+  fill: #fff !important;
+}
+.navbar .btn,
+.navbar .form-control,
+.navbar .navbar-toggler {
+  background: transparent !important;
+  color: #fff !important;
+  border-color: #fff !important;
+}
+/* Custom cluster colors for each layer group */
+.marker-cluster-herostones {
+  background-color: #0074D9 !important;
+  color: #fff !important;
+}
+.marker-cluster-inscriptions {
+  background-color: #FF851B !important;
+  color: #fff !important;
+}
+.marker-cluster-temples {
+  background-color: #e63946 !important;
+  color: #fff !important;
+}
+/* Custom cluster colors for each layer */
+.marker-cluster {
+  border: 2px solid #fff;
+}
+.marker-cluster-small {
+  background-color: #0074D9 !important; /* Herostones */
+}
+.marker-cluster-medium {
+  background-color: #FF851B !important; /* Inscriptions */
+}
+.marker-cluster-large {
+  background-color: #e63946 !important; /* Temples */
+}
 /* Left panel vertical tabs */
 #panelLeft .sidepanel-tabs-wrapper {
   height: 100%;
@@ -83,13 +136,13 @@
 #panelLeft {
   position: absolute !important;
   left: -320px;
-  top: 56px;
-  height: calc(100vh - 56px);
+  top: 75px;
+  height: calc(100vh - 75px);
   width: 320px;
   background: #fff;
   box-shadow: 2px 0 8px rgba(0,0,0,0.08);
-  z-index: 1001;
-  transition: left 0.2s;
+  z-index: 1101;
+  transition: right 0.2s;
   display: block;
 }
 /* Right panel vertical toggle button styles */
@@ -159,10 +212,6 @@
 }
 /* Removed sidebar and tab styles */
 
-/* Hide tab icons when sidebar is expanded */
-#leftSidebarTabs.flex-row .tab-icon {
-  display: none !important;
-}
 /* Ensure dropdown options wrap text */
 .feature-dropdown option {
   white-space: normal;
@@ -194,20 +243,8 @@ body {
 
 #appContainer {
   display: flex;
-  height: calc(100vh - 56px); /* 56px is default Bootstrap navbar height */
+  height: calc(100vh - 75px); /* 75px is new navbar height */
   width: 100vw;
-}
-
-.sidebar {
-  width: 250px;
-  background: white;
-  overflow-y: auto;
-  padding: 10px 10px 10px 20px;
-  z-index: 1000;
-  box-shadow: 2px 0 5px rgba(0,0,0,0.3);
-  flex-shrink: 0;
-  position: relative;
-  height: 100%;
 }
 
 #mainContent {
@@ -264,11 +301,6 @@ body {
 
 #tabContent { padding-top:10px; }
 .nav-link { cursor:pointer; }
-
-/* Add spacing between bottom of tabs and start of panel sections */
-#leftSidebarTabs {
-  margin-bottom: 15px !important;
-}
 
 /* Move Leaflet zoom control down by 20px */
 .leaflet-control-zoom {

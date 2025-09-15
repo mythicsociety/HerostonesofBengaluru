@@ -1,3 +1,55 @@
+// --- Ridge (Bengaluru) Layer ---
+let ridgeBengaluruLayer = null;
+function loadRidgeBengaluruLayer() {
+  fetch('geojson/Ridges_Bengaluru.geojson')
+    .then(res => res.json())
+    .then(data => {
+      ridgeBengaluruLayer = L.geoJSON(data, {
+        style: function() {
+          return {
+            color: '#6c3ab2', // neon purple
+            weight: 2,
+            opacity: 1,
+            dashArray: '',
+            className: 'ridge-neon-glow'
+          };
+        }
+      });
+
+      // Add neon glow effect via CSS
+      const style = document.createElement('style');
+      style.innerHTML = `
+        .ridge-neon-glow {
+          filter: drop-shadow(0 0 6px #6c3ab2) drop-shadow(0 0 12px #6c3ab2);
+        }
+      `;
+      document.head.appendChild(style);
+      // Only add to map if checkbox is checked
+      const ridgeCheckbox = document.getElementById('layerRidgeBengaluru');
+      if (ridgeCheckbox && ridgeCheckbox.checked) {
+        ridgeBengaluruLayer.addTo(window.map);
+      }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  if (window.map) {
+    const ridgeCheckbox = document.getElementById('layerRidgeBengaluru');
+    if (ridgeCheckbox) {
+      ridgeCheckbox.addEventListener('change', function() {
+        if (ridgeCheckbox.checked) {
+          if (!ridgeBengaluruLayer) {
+            loadRidgeBengaluruLayer();
+          } else {
+            ridgeBengaluruLayer.addTo(window.map);
+          }
+        } else {
+          if (ridgeBengaluruLayer) window.map.removeLayer(ridgeBengaluruLayer);
+        }
+      });
+    }
+  }
+});
 // Expose district GeoJSON filenames globally for dropdown
 // Expose Taluk geojson files globally for dropdown
 window.talukGeojsonFiles = [
@@ -20,7 +72,7 @@ window.talukGeojsonFiles = [
 // Store loaded taluk layers
 window._talukLayers = {};
 
-// Add/remove taluk boundaries based on selection and zoom to extent
+// Change Taluk boundary color to maroon shade
 window.setTalukBoundariesVisibility = function(selectedTaluks) {
   if (!window.map) return;
   // Remove all taluk layers first
@@ -47,7 +99,7 @@ window.setTalukBoundariesVisibility = function(selectedTaluks) {
         .then(data => {
           var layer = L.geoJSON(data, {
             style: {
-              color: '#16a085',
+              color: '#800000', // maroon shade
               weight: 2,
               fillOpacity: 0.1
             }
@@ -147,78 +199,114 @@ window.baseLayers = {
 var map = L.map('map').setView([12.97,77.59],11);
 window.baseLayers["OSM Standard"].addTo(map);
 window.map = map;
-// Initialize SidePanel after map is created
-if (window.initSidePanel) {
-  window.initSidePanel(window.map);
-}
 
 // Initialize layers based on State
 document.addEventListener('DOMContentLoaded', function() {
   // Do not load Heritage Sites layers by default
-});
+    // Accessibility: Move focus out of hidden panel when closed
+    function setPanelVisibility(panelId, visible) {
+      var panel = document.getElementById(panelId);
+      if (!panel) return;
+      panel.setAttribute('aria-hidden', visible ? 'false' : 'true');
+      // Make interactive elements inside hidden panel unfocusable
+      var focusables = panel.querySelectorAll('a, button, input, select, textarea, [tabindex]');
+      focusables.forEach(function(el) {
+        if (!visible) {
+          el.setAttribute('tabindex', '-1');
+        } else {
+          el.removeAttribute('tabindex');
+        }
+      });
+      // If hiding, move focus to body
+      if (!visible) {
+        document.body.focus();
+      }
+    }
 
 // GeoJSON layers are defined below with proper marker styling
 
 
 // --- Clustering Setup ---
-var herostonesLayer = L.geoJSON(null, {
+window.herostonesLayer = L.geoJSON(null, {
   pointToLayer: function (feature, latlng) {
     return L.marker(latlng, {
       icon: L.divIcon({
         className: 'custom-marker herostone',
-        html: '<div style="background:#0074D9;border:2px solid #fff;border-radius:50%;width:16px;height:16px;"></div>',
-        iconSize: [16, 16]
+  html: '<div style="background:#0074D9;border:2px solid #fff;border-radius:50%;width:11px;height:11px;"></div>',
+  iconSize: [11, 11]
       })
     });
   },
   onEachFeature: function (feature, layer) {
-    let props = feature.properties;
-    let html = `<b>Herostone</b><br/>`;
-    for (const key in props) {
-      html += `${key}: ${props[key]}<br/>`;
-    }
-    layer.bindPopup(html);
+    layer.on('click', function(e) {
+      showFeatureInAboutPanel('Herostone', feature.properties);
+    });
   }
 });
 
-var inscriptionsLayer = L.geoJSON(null, {
+window.inscriptionsLayer = L.geoJSON(null, {
   pointToLayer: function (feature, latlng) {
     return L.marker(latlng, {
       icon: L.divIcon({
         className: 'custom-marker inscription',
-        html: '<div style="background:#FF851B;border:2px solid #fff;border-radius:50%;width:16px;height:16px;"></div>',
-        iconSize: [16, 16]
+  html: '<div style="background:#FF851B;border:2px solid #fff;border-radius:50%;width:11px;height:11px;"></div>',
+  iconSize: [11, 11]
       })
     });
   },
   onEachFeature: function (feature, layer) {
-    let props = feature.properties;
-    let html = `<b>Inscription</b><br/>`;
-    for (const key in props) {
-      html += `${key}: ${props[key]}<br/>`;
-    }
-    layer.bindPopup(html);
+    layer.on('click', function(e) {
+      showFeatureInAboutPanel('Inscription', feature.properties);
+    });
   }
 });
 
-var templesLayer = L.geoJSON(null, {
+window.templesLayer = L.geoJSON(null, {
   pointToLayer: function (feature, latlng) {
     return L.marker(latlng, {
       icon: L.divIcon({
         className: 'custom-marker temple',
-        html: '<div style="background:#e63946;border:2px solid #fff;border-radius:50%;width:16px;height:16px;"></div>',
-        iconSize: [16, 16]
+  html: '<div style="background:#e63946;border:2px solid #fff;border-radius:50%;width:11px;height:11px;"></div>',
+  iconSize: [11, 11]
       })
     });
   },
   onEachFeature: function (feature, layer) {
-    let props = feature.properties;
-    let html = `<b>Temple</b><br/>`;
-    for (const key in props) {
-      html += `${key}: ${props[key]}<br/>`;
-    }
-    layer.bindPopup(html);
+    layer.on('click', function(e) {
+      showFeatureInAboutPanel('Temple', feature.properties);
+    });
   }
+});
+
+// Show feature details in About panel as a scrollable table
+function showFeatureInAboutPanel(type, properties) {
+  // Open right panel and switch to About tab
+    var panel = document.getElementById('panelRight');
+    if (panel) {
+      setPanelVisibility('panelRight', true);
+    // Show About tab
+    var tabLinks = document.querySelectorAll('#panelRight .sidebar-tab-link');
+    tabLinks.forEach(function(link) {
+      if (link.getAttribute('data-tab-link') === 'tab-1') {
+        link.click();
+      }
+    });
+    // Render table in About tab
+    var aboutTab = document.querySelector('#panelRight .sidepanel-tab-content[data-tab-content="tab-1"]');
+    if (aboutTab) {
+      var keys = Object.keys(properties);
+      var tableHtml = '<h4>' + type + ' Details</h4>';
+      tableHtml += '<div style="max-height:60vh;overflow:auto;border:1px solid #ccc;border-radius:6px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.05);margin-top:12px;">';
+      tableHtml += '<table class="table table-bordered table-sm mb-0" style="font-size:0.97em;">';
+      tableHtml += '<thead><tr><th>Attribute</th><th>Value</th></tr></thead><tbody>';
+      keys.forEach(function(k) {
+        tableHtml += '<tr><td>' + k + '</td><td>' + (properties[k] !== undefined ? properties[k] : '') + '</td></tr>';
+      });
+      tableHtml += '</tbody></table></div>';
+      aboutTab.innerHTML = tableHtml;
+    }
+  }
+}
 });
 
 // Cluster groups
@@ -491,7 +579,11 @@ function renderFeaturesDropdowns() {
       const visibleLayers = getVisibleMarkerLayers();
       const labels = visibleLayers.map(l => l.name);
       const data = visibleLayers.map(l => l.layer.getLayers().filter(m => m instanceof L.Marker).length);
-      new Chart(ctx, {
+      // Destroy previous chart instance if exists
+      if (window.featuresDonutChartInstance) {
+        window.featuresDonutChartInstance.destroy();
+      }
+      window.featuresDonutChartInstance = new Chart(ctx, {
         type: 'doughnut',
         data: {
           labels: labels,
@@ -545,3 +637,29 @@ document.addEventListener('DOMContentLoaded', function() {
     renderFeaturesDropdowns();
   };
 });
+
+// Always update Features tab dropdowns and chart after any filter or layer change, regardless of tab state
+function updateFeaturesPanelIfExists() {
+  const featuresTabContent = document.querySelector('#panelRight .sidepanel-tab-content[data-tab-content="tab-2"]');
+  if (featuresTabContent) {
+    renderFeaturesDropdowns();
+  }
+}
+
+// Patch applyHeritageSitesFilter to always update Features panel
+var origApplyHeritageSitesFilter = window.applyHeritageSitesFilter;
+window.applyHeritageSitesFilter = function() {
+  origApplyHeritageSitesFilter.apply(this, arguments);
+  updateFeaturesPanelIfExists();
+};
+
+// Patch setLayerVisibility to always update Features panel
+var origSetLayerVisibility = window.setLayerVisibility;
+window.setLayerVisibility = function(name, visible) {
+  origSetLayerVisibility.apply(this, arguments);
+  updateFeaturesPanelIfExists();
+};
+
+// Optionally, update on map move/zoom (for clustering changes)
+window.map.on('moveend', updateFeaturesPanelIfExists);
+window.map.on('zoomend', updateFeaturesPanelIfExists);

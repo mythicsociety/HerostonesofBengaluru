@@ -1,9 +1,38 @@
 .marker-blink {
-  animation: markerBlinkAnim 0.5s linear infinite;
+  position: relative;
 }
 
-@keyframes markerBlinkAnim {
-  0% { filter: brightness(2) drop-shadow(0 0 8px #ff0); }
-  50% { filter: brightness(1) drop-shadow(0 0 16px #ff0); }
-  100% { filter: brightness(2) drop-shadow(0 0 8px #ff0); }
+.marker-blink::after,
+.marker-blink::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 32px;
+  height: 32px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  pointer-events: none;
+  border: 2px solid rgba(255,0,0,0.5);
+  z-index: 1;
+}
+
+.marker-blink::after {
+  animation: markerPing 1s linear infinite;
+}
+
+.marker-blink::before {
+  animation: markerPing 1s linear infinite;
+  animation-delay: 0.5s;
+}
+
+@keyframes markerPing {
+  0% {
+    opacity: 0.5;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(2.5);
+  }
 }

@@ -87,6 +87,7 @@ function renderFiltersTab(container) {
         let selected = Array.from(list.querySelectorAll('input.district-filter:checked')).map(x => x.value);
         State.filters.districts = selected;
         if(typeof applyFilters === 'function') applyFilters();
+        if(typeof window.renderFeaturesDropdowns === 'function') window.renderFeaturesDropdowns();
         // Update button text
         const btnLabel = document.getElementById('districtMultiSelect').querySelector('.district-btn-label');
         if(btnLabel) btnLabel.textContent = selected.length ? selected.join(', ') : 'Select Districts';
@@ -115,6 +116,7 @@ function applyFilters() {
   // Filter map layers by selected districts
   if (!window.map) return;
   const selectedDistricts = State.filters.districts || [];
+  const periodRange = window._selectedPeriodRange || [0, 100];
   // Helper to check if feature matches selected districts
   function matchesDistrict(feature) {
     if (!selectedDistricts.length) return true; // If none selected, show all
@@ -123,38 +125,44 @@ function applyFilters() {
   }
   // Use Leaflet's filter by setting style/display for each marker
   function filterLayerByDistrict(layerObj, layerName) {
-    if (!layerObj) return;
+    if (!layerObj) return [];
     // Only filter if layer is visible
     var layerCheckbox = document.getElementById('layer' + layerName);
     var visible = layerCheckbox && layerCheckbox.checked;
+    var filteredMarkers = [];
     layerObj.eachLayer(function(marker) {
       var feature = marker.feature;
       if (!feature) return;
       var d = feature.properties.District_KGIS || feature.properties.District || feature.properties.district;
-      var show = visible && (!selectedDistricts.length || (d && selectedDistricts.includes(d.trim())));
+  // Period filter
+  var period = marker.feature && marker.feature.properties && marker.feature.properties['Period (Century)'];
+  var matchPeriod = period !== undefined && period !== null && !isNaN(Number(period)) && Number(period) >= periodRange[0] && Number(period) <= periodRange[1];
+  var show = visible && (!selectedDistricts.length || (d && selectedDistricts.includes(d.trim()))) && matchPeriod;
       if (marker.setStyle) {
         marker.setStyle({opacity: show ? 1 : 0, fillOpacity: show ? 0.8 : 0});
       }
       if (marker._icon) {
         marker._icon.style.display = show ? '' : 'none';
       }
+      if (show) filteredMarkers.push(marker);
     });
+    return filteredMarkers;
   }
-  filterLayerByDistrict(window.herostonesLayer, 'Herostones');
-  filterLayerByDistrict(window.inscriptionsLayer, 'Inscriptions');
-  filterLayerByDistrict(window.templesLayer, 'Temples');
+  var herostonesFiltered = filterLayerByDistrict(window.herostonesLayer, 'Herostones');
+  var inscriptionsFiltered = filterLayerByDistrict(window.inscriptionsLayer, 'Inscriptions');
+  var templesFiltered = filterLayerByDistrict(window.templesLayer, 'Temples');
   // Also update clusters if enabled
   if (window.herostonesCluster && window.herostonesLayer) {
     window.herostonesCluster.clearLayers();
-    window.herostonesCluster.addLayers(window.herostonesLayer.getLayers());
+    window.herostonesCluster.addLayers(herostonesFiltered);
   }
   if (window.inscriptionsCluster && window.inscriptionsLayer) {
     window.inscriptionsCluster.clearLayers();
-    window.inscriptionsCluster.addLayers(window.inscriptionsLayer.getLayers());
+    window.inscriptionsCluster.addLayers(inscriptionsFiltered);
   }
   if (window.templesCluster && window.templesLayer) {
     window.templesCluster.clearLayers();
-    window.templesCluster.addLayers(window.templesLayer.getLayers());
+    window.templesCluster.addLayers(templesFiltered);
   }
 
   // Re-render Features dropdowns to reflect filtered markers
