@@ -70,28 +70,17 @@ function showQueryWidget() {
                 <option value="Temples">Temples</option>
               </select>
             </div>
+            <div id="queryConditions">
+              <!-- Dynamic conditions will be inserted here -->
+            </div>
             <div class="mb-3">
-              <label for="queryField" class="form-label">Attribute</label>
-              <select class="form-select" id="queryField">
-                <option value="" selected disabled>Select Attribute...</option>
+              <label for="queryLogic" class="form-label">Combine Conditions With</label>
+              <select class="form-select" id="queryLogic">
+                <option value="AND">AND</option>
+                <option value="OR">OR</option>
               </select>
             </div>
-            <div class="mb-3">
-              <label for="queryOperator" class="form-label">Operator</label>
-              <select class="form-select" id="queryOperator">
-                <option value="" selected disabled>Select Operator...</option>
-                <option value="=">=</option>
-                <option value="contains">contains</option>
-                <option value="startsWith">starts with</option>
-                <option value="endsWith">ends with</option>
-                <option value=">">&gt;</option>
-                <option value="<">&lt;</option>
-              </select>
-            </div>
-            <div class="mb-3">
-              <label for="queryValue" class="form-label">Value</label>
-              <input type="text" class="form-control" id="queryValue">
-            </div>
+            <button type="button" class="btn btn-secondary mb-2" id="addConditionBtn">Add Condition</button>
             <button type="submit" class="btn btn-primary">Run Query</button>
           </form>
         </div>
@@ -208,21 +197,48 @@ function showQueryWidget() {
     });
   }
 
-  // Populate fields for selected layer
-  function updateFields() {
+  // Multi-condition support
+  let conditionCount = 0;
+  function addConditionRow() {
+    conditionCount++;
+    const conditionsDiv = document.getElementById('queryConditions');
+    const rowId = `queryCondRow${conditionCount}`;
+    const row = document.createElement('div');
+    row.className = 'mb-2 d-flex align-items-center';
+    row.id = rowId;
+    row.innerHTML = `
+      <select class="form-select me-2" style="width:28%;" id="queryField${conditionCount}"></select>
+      <select class="form-select me-2" style="width:22%;" id="queryOperator${conditionCount}">
+        <option value="=">=</option>
+        <option value="contains">contains</option>
+        <option value="startsWith">starts with</option>
+        <option value="endsWith">ends with</option>
+        <option value=">">&gt;</option>
+        <option value="<">&lt;</option>
+      </select>
+      <input type="text" class="form-control me-2" style="width:28%;" id="queryValue${conditionCount}">
+      <button type="button" class="btn btn-sm btn-danger" id="removeCondBtn${conditionCount}" title="Remove"><i class="fa fa-times"></i></button>
+    `;
+    conditionsDiv.appendChild(row);
+    document.getElementById(`removeCondBtn${conditionCount}`).onclick = function() {
+      row.remove();
+    };
+    // Populate fields
+    updateFieldsForRow(conditionCount);
+  }
+
+  function updateFieldsForRow(idx) {
     var layerName = document.getElementById('queryLayer').value;
-    var fieldSelect = document.getElementById('queryField');
-  fieldSelect.innerHTML = '';
-  var defaultOpt = document.createElement('option');
-  defaultOpt.value = '';
-  defaultOpt.textContent = 'Select Attribute...';
-  defaultOpt.disabled = true;
-  defaultOpt.selected = true;
-  fieldSelect.appendChild(defaultOpt);
+    var fieldSelect = document.getElementById(`queryField${idx}`);
+    fieldSelect.innerHTML = '';
+    var defaultOpt = document.createElement('option');
+    defaultOpt.value = '';
+    defaultOpt.textContent = 'Select Attribute...';
+    defaultOpt.disabled = true;
+    defaultOpt.selected = true;
+    fieldSelect.appendChild(defaultOpt);
     var sampleFeature = null;
     var layerLoaded = false;
-    
-    // Access layers through window object
     if (layerName === 'Herostones' && window.herostonesLayer) {
       var features = window.herostonesLayer.toGeoJSON().features;
       layerLoaded = features.length > 0;
@@ -236,31 +252,12 @@ function showQueryWidget() {
       layerLoaded = features.length > 0;
       if (layerLoaded) sampleFeature = features[0];
     }
-    var msgDiv = document.getElementById('queryLayerMsg');
-    if (!msgDiv) {
-      msgDiv = document.createElement('div');
-      msgDiv.id = 'queryLayerMsg';
-      msgDiv.className = 'mb-2';
-      fieldSelect.parentNode.insertBefore(msgDiv, fieldSelect);
-    }
     if (!layerLoaded) {
-      msgDiv.innerHTML = `<div class='alert alert-warning p-2'>Layer not loaded. <button id='loadLayerBtn' class='btn btn-sm btn-primary'>Load ${layerName}</button></div>`;
-      fieldSelect.innerHTML = '';
-      document.getElementById('loadLayerBtn').onclick = function() {
-        if (typeof window.loadLayerGeoJSON === 'function') window.loadLayerGeoJSON(layerName);
-        setTimeout(updateFields, 800);
-        // Open Layer dropdown as a true dropdown (not scrollable)
-        var layerSelect = document.getElementById('queryLayer');
-        if (layerSelect) {
-          layerSelect.focus();
-          // Try to trigger dropdown open (works in most browsers)
-          var event = document.createEvent('MouseEvents');
-          event.initMouseEvent('mousedown', true, true, window);
-          layerSelect.dispatchEvent(event);
-        }
-      };
+      var opt = document.createElement('option');
+      opt.value = '';
+      opt.textContent = 'Layer not loaded';
+      fieldSelect.appendChild(opt);
     } else {
-      msgDiv.innerHTML = '';
       var keys = Object.keys(sampleFeature.properties);
       if (keys.length === 0) {
         var opt = document.createElement('option');
@@ -277,34 +274,55 @@ function showQueryWidget() {
       }
     }
   }
-  document.getElementById('queryLayer').addEventListener('change', updateFields);
-  updateFields();
+
+  document.getElementById('queryLayer').addEventListener('change', function() {
+    // Update all condition rows
+    for (let i = 1; i <= conditionCount; i++) {
+      if (document.getElementById(`queryField${i}`)) updateFieldsForRow(i);
+    }
+  });
+  // Add first condition row by default
+  addConditionRow();
+  document.getElementById('addConditionBtn').onclick = addConditionRow;
 
   // Query logic
   document.getElementById('queryForm').onsubmit = function(e) {
     e.preventDefault();
     var layerName = document.getElementById('queryLayer').value;
-    var field = document.getElementById('queryField').value;
-    var operator = document.getElementById('queryOperator').value;
-    var value = document.getElementById('queryValue').value;
-    var results = [];
+    var logic = document.getElementById('queryLogic').value;
     var layer = null;
-    
-    // Access layers through window object
     if (layerName === 'Herostones') layer = window.herostonesLayer;
     if (layerName === 'Inscriptions') layer = window.inscriptionsLayer;
     if (layerName === 'Temples') layer = window.templesLayer;
     if (!layer) return;
     var features = layer.toGeoJSON().features;
-    results = features.filter(function(f) {
-      var prop = f.properties[field];
-      if (operator === '=') return prop == value;
-      if (operator === 'contains') return (prop + '').toLowerCase().includes(value.toLowerCase());
-      if (operator === 'startsWith') return (prop + '').toLowerCase().startsWith(value.toLowerCase());
-      if (operator === 'endsWith') return (prop + '').toLowerCase().endsWith(value.toLowerCase());
-      if (operator === '>') return parseFloat(prop) > parseFloat(value);
-      if (operator === '<') return parseFloat(prop) < parseFloat(value);
-      return false;
+    // Gather all conditions
+    var conditions = [];
+    for (let i = 1; i <= conditionCount; i++) {
+      var fieldEl = document.getElementById(`queryField${i}`);
+      var opEl = document.getElementById(`queryOperator${i}`);
+      var valEl = document.getElementById(`queryValue${i}`);
+      if (fieldEl && opEl && valEl && fieldEl.value && opEl.value && valEl.value) {
+        conditions.push({ field: fieldEl.value, operator: opEl.value, value: valEl.value });
+      }
+    }
+    // Filtering logic
+    var results = features.filter(function(f) {
+      var matches = conditions.map(function(cond) {
+        var prop = f.properties[cond.field];
+        if (cond.operator === '=') return prop == cond.value;
+        if (cond.operator === 'contains') return (prop + '').toLowerCase().includes(cond.value.toLowerCase());
+        if (cond.operator === 'startsWith') return (prop + '').toLowerCase().startsWith(cond.value.toLowerCase());
+        if (cond.operator === 'endsWith') return (prop + '').toLowerCase().endsWith(cond.value.toLowerCase());
+        if (cond.operator === '>') return parseFloat(prop) > parseFloat(cond.value);
+        if (cond.operator === '<') return parseFloat(prop) < parseFloat(cond.value);
+        return false;
+      });
+      if (logic === 'AND') {
+        return matches.every(Boolean);
+      } else {
+        return matches.some(Boolean);
+      }
     });
     // Pagination variables
     var resultsDiv = document.getElementById('queryResults');
@@ -331,59 +349,75 @@ function showQueryWidget() {
         Object.keys(f.properties).forEach(function(k) {
           var cellValue = f.properties[k];
           var highlight = '';
-          var innerHtml = cellValue;
-          // Highlight if this is the queried field and matches the value
-          if (k === field) {
-            let matched = false;
-            if (operator === '=') {
-              if (cellValue == value) {
-                highlight = 'background:yellow;font-weight:bold;';
-                innerHtml = `<span style='background:lightgreen;'>${cellValue}</span>`;
-                matched = true;
-              }
-            }
-            if (operator === 'contains') {
-              let idx = (cellValue + '').toLowerCase().indexOf(value.toLowerCase());
-              if (idx !== -1) {
-                highlight = 'background:yellow;font-weight:bold;';
-                let valStr = cellValue + '';
-                let before = valStr.substring(0, idx);
-                let match = valStr.substring(idx, idx + value.length);
-                let after = valStr.substring(idx + value.length);
-                innerHtml = `${before}<span style='background:lightgreen;'>${match}</span>${after}`;
-                matched = true;
-              }
-            }
-            if (operator === 'startsWith') {
+          var innerHtml = cellValue + '';
+          let matched = false;
+          // For 'contains', collect all substrings to highlight
+          let highlightRanges = [];
+          for (let condIdx = 0; condIdx < conditions.length; condIdx++) {
+            var cond = conditions[condIdx];
+            if (k === cond.field) {
               let valStr = cellValue + '';
-              if (valStr.toLowerCase().startsWith(value.toLowerCase())) {
-                highlight = 'background:yellow;font-weight:bold;';
-                let match = valStr.substring(0, value.length);
-                let after = valStr.substring(value.length);
-                innerHtml = `<span style='background:lightgreen;'>${match}</span>${after}`;
+              if (cond.operator === '=') {
+                if (cellValue == cond.value) {
+                  matched = true;
+                  highlightRanges.push({start:0, end:valStr.length});
+                }
+              }
+              if (cond.operator === 'contains') {
+                let lowerValStr = valStr.toLowerCase();
+                let lowerCondVal = cond.value.toLowerCase();
+                let idx = 0;
+                while ((idx = lowerValStr.indexOf(lowerCondVal, idx)) !== -1) {
+                  matched = true;
+                  highlightRanges.push({start:idx, end:idx+cond.value.length});
+                  idx += cond.value.length;
+                }
+              }
+              if (cond.operator === 'startsWith') {
+                if (valStr.toLowerCase().startsWith(cond.value.toLowerCase())) {
+                  matched = true;
+                  highlightRanges.push({start:0, end:cond.value.length});
+                }
+              }
+              if (cond.operator === 'endsWith') {
+                if (valStr.toLowerCase().endsWith(cond.value.toLowerCase())) {
+                  matched = true;
+                  highlightRanges.push({start:valStr.length-cond.value.length, end:valStr.length});
+                }
+              }
+              if (cond.operator === '>' && parseFloat(cellValue) > parseFloat(cond.value)) {
                 matched = true;
+                highlightRanges.push({start:0, end:valStr.length});
+              }
+              if (cond.operator === '<' && parseFloat(cellValue) < parseFloat(cond.value)) {
+                matched = true;
+                highlightRanges.push({start:0, end:valStr.length});
               }
             }
-            if (operator === 'endsWith') {
-              let valStr = cellValue + '';
-              if (valStr.toLowerCase().endsWith(value.toLowerCase())) {
-                highlight = 'background:yellow;font-weight:bold;';
-                let before = valStr.substring(0, valStr.length - value.length);
-                let match = valStr.substring(valStr.length - value.length);
-                innerHtml = `${before}<span style='background:lightgreen;'>${match}</span>`;
-                matched = true;
+          }
+          // Merge overlapping highlight ranges
+          if (highlightRanges.length > 0) {
+            highlight = 'background:yellow;font-weight:bold;';
+            // Sort and merge ranges
+            highlightRanges.sort((a,b)=>a.start-b.start);
+            let merged = [];
+            for (let r of highlightRanges) {
+              if (!merged.length || merged[merged.length-1].end < r.start) {
+                merged.push({...r});
+              } else {
+                merged[merged.length-1].end = Math.max(merged[merged.length-1].end, r.end);
               }
             }
-            if (operator === '>' && parseFloat(cellValue) > parseFloat(value)) {
-              highlight = 'background:yellow;font-weight:bold;';
-              innerHtml = `<span style='background:lightgreen;'>${cellValue}</span>`;
-              matched = true;
+            // Build highlighted HTML
+            let out = '';
+            let last = 0;
+            for (let m of merged) {
+              if (last < m.start) out += innerHtml.substring(last, m.start);
+              out += `<span style='background:lightgreen;'>${innerHtml.substring(m.start, m.end)}</span>`;
+              last = m.end;
             }
-            if (operator === '<' && parseFloat(cellValue) < parseFloat(value)) {
-              highlight = 'background:yellow;font-weight:bold;';
-              innerHtml = `<span style='background:lightgreen;'>${cellValue}</span>`;
-              matched = true;
-            }
+            if (last < innerHtml.length) out += innerHtml.substring(last);
+            innerHtml = out;
           }
           html += `<td style='${highlight}'>${innerHtml}</td>`;
         });

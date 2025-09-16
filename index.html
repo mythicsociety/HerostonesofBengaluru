@@ -135,6 +135,13 @@
       // Hide custom backdrop when modal is hidden
       welcomeModalEl.addEventListener('hidden.bs.modal', function() {
         customBackdrop.style.display = 'none';
+        // Move focus to About button to avoid aria-hidden warning
+        var aboutBtn = document.getElementById('aboutBtn');
+        if (aboutBtn) {
+          aboutBtn.focus();
+        } else {
+          document.body.focus();
+        }
       });
       var continueBtn = document.querySelector('#welcomeModal .btn-primary');
       continueBtn.addEventListener('click', function() {
@@ -318,14 +325,12 @@
                     </div>
 
                       <div class="mb-2">
-                        <label style="font-size:0.98em;font-weight:500;">Period (Century) From:</label>
+                        <label style="font-size:0.98em;font-weight:500;">Period (Century) From: <span id="periodMinSliderValue" style="font-size:0.95em; color:#444;"></span></label>
                         <input type="range" class="form-range" id="periodMinSlider" min="0" max="100" step="1">
-                        <div id="periodMinSliderValue" style="font-size:0.95em; margin-top:6px; color:#444;"></div>
                       </div>
                       <div class="mb-2">
-                        <label style="font-size:0.98em;font-weight:500;">Period (Century) To:</label>
+                        <label style="font-size:0.98em;font-weight:500;">Period (Century) To: <span id="periodMaxSliderValue" style="font-size:0.95em; color:#444;"></span></label>
                         <input type="range" class="form-range" id="periodMaxSlider" min="0" max="100" step="1">
-                        <div id="periodMaxSliderValue" style="font-size:0.95em; margin-top:6px; color:#444;"></div>
                       </div>
                   </div>
                 </div>
@@ -923,8 +928,8 @@ function initPeriodSliders() {
       maxSlider.value = minVal;
     }
     window._selectedPeriodRange = [minVal, maxVal];
-    minValueDiv.textContent = 'Century From: ' + minVal;
-    maxValueDiv.textContent = 'Century To: ' + maxVal;
+    minValueDiv.textContent = minVal;
+    maxValueDiv.textContent = maxVal;
     applyHeritageSitesFilter();
     if (typeof window.renderFeaturesDropdowns === 'function') window.renderFeaturesDropdowns();
   }
@@ -934,8 +939,8 @@ function initPeriodSliders() {
 
   // Set initial value
   window._selectedPeriodRange = [range[0], range[1]];
-  minValueDiv.textContent = 'Century From: ' + range[0];
-  maxValueDiv.textContent = 'Century To: ' + range[1];
+  minValueDiv.textContent = range[0];
+  maxValueDiv.textContent = range[1];
 }
 
 // Extend applyHeritageSitesFilter to filter by period
