@@ -122,9 +122,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1002;
+  z-index: 2000; /* Increased to ensure always above panel */
   cursor: pointer;
   transition: background 0.2s;
+  visibility: visible !important;
+  pointer-events: auto !important;
 }
 #panelLeftToggle:hover {
   background: #444;
@@ -142,7 +144,7 @@
   background: #fff;
   box-shadow: 2px 0 8px rgba(0,0,0,0.08);
   z-index: 1101;
-  transition: right 0.2s;
+  transition: left 0.2s;
   display: block;
 }
 /* Right panel vertical toggle button styles */

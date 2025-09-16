@@ -176,9 +176,19 @@ const PanelControl = (function() {
                 config.expandedLeftPosition : config.collapsedLeftPosition;
             elements.leftArrow.style.transform = state.leftPanelExpanded ? 
                 config.expandedArrowRotation : config.collapsedArrowRotation;
-            // Update toggle button class
+            // Update toggle button class: deactivate when collapsed
             if (elements.leftToggle) {
-                elements.leftToggle.classList.toggle(config.activeClass, state.leftPanelExpanded);
+                if (state.leftPanelExpanded) {
+                    elements.leftToggle.classList.add(config.activeClass);
+                    // Attach toggle to outside right edge of left panel
+                    elements.leftToggle.style.left = (320) + 'px';
+                    elements.leftToggle.style.right = '';
+                } else {
+                    elements.leftToggle.classList.remove(config.activeClass);
+                    // Attach toggle to left edge of viewport
+                    elements.leftToggle.style.left = '0';
+                    elements.leftToggle.style.right = '';
+                }
             }
             // Accessibility: inert and tabindex for left panel
             if (!state.leftPanelExpanded) {
@@ -206,10 +216,9 @@ const PanelControl = (function() {
         if (elements.rightPanel && elements.rightArrow) {
             elements.rightPanel.style.right = state.rightPanelExpanded ? 
                 config.expandedRightPosition : config.collapsedRightPosition;
-            
+            // Reverse arrow rotation logic for right panel
             elements.rightArrow.style.transform = state.rightPanelExpanded ? 
-                config.expandedArrowRotation : config.collapsedArrowRotation;
-                
+                config.collapsedArrowRotation : config.expandedArrowRotation;
             // Update toggle button class
             if (elements.rightToggle) {
                 elements.rightToggle.classList.toggle(config.activeClass, state.rightPanelExpanded);
@@ -301,53 +310,8 @@ const PanelControl = (function() {
 
 // Initialize when DOM is fully loaded
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize panel control and set both panels expanded by default
     PanelControl.init();
-    
-    // Set both panels to expanded by default after initialization
-    // This ensures they're properly expanded regardless of localStorage state
     PanelControl.setPanelState(true, true);
-
-    // --- Draggable resize logic for left/right panel edges ---
-    var leftPanel = document.getElementById('panelLeft');
-    var rightPanel = document.getElementById('panelRight');
-    var leftDragEdge = document.getElementById('panelLeftDragEdge');
-    var rightDragEdge = document.getElementById('panelRightDragEdge');
-    var mainContent = document.getElementById('mainContent');
-    var minPanelWidth = 180, maxPanelWidth = 600;
-
-    function startDrag(e, panel, edge, isLeft) {
-      e.preventDefault();
-      document.body.style.cursor = 'ew-resize';
-      var startX = e.type.startsWith('touch') ? e.touches[0].clientX : e.clientX;
-      var startWidth = panel.offsetWidth;
-      function onMove(ev) {
-        var clientX = ev.type.startsWith('touch') ? ev.touches[0].clientX : ev.clientX;
-        var delta = isLeft ? (clientX - startX) : (startX - clientX);
-        var newWidth = Math.min(maxPanelWidth, Math.max(minPanelWidth, startWidth + delta));
-        panel.style.width = newWidth + 'px';
-        if (mainContent) {
-          if (isLeft) mainContent.style.marginLeft = newWidth + 'px';
-          else mainContent.style.marginRight = newWidth + 'px';
-        }
-      }
-      function onUp() {
-        document.body.style.cursor = '';
-        window.removeEventListener('mousemove', onMove);
-        window.removeEventListener('mouseup', onUp);
-        window.removeEventListener('touchmove', onMove);
-        window.removeEventListener('touchend', onUp);
-      }
-      window.addEventListener('mousemove', onMove);
-      window.addEventListener('mouseup', onUp);
-      window.addEventListener('touchmove', onMove);
-      window.addEventListener('touchend', onUp);
-    }
-    if (leftDragEdge && leftPanel) {
-      leftDragEdge.addEventListener('mousedown', function(e) { startDrag(e, leftPanel, leftDragEdge, true); });
-      leftDragEdge.addEventListener('touchstart', function(e) { startDrag(e, leftPanel, leftDragEdge, true); });
-    }
-    if (rightDragEdge && rightPanel) {
-      rightDragEdge.addEventListener('mousedown', function(e) { startDrag(e, rightPanel, rightDragEdge, false); });
-      rightDragEdge.addEventListener('touchstart', function(e) { startDrag(e, rightPanel, rightDragEdge, false); });
-    }
+    // Panels are now only controlled by toggle buttons for simplicity
 });

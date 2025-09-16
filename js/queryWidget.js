@@ -58,37 +58,38 @@ function showQueryWidget() {
           <span id="queryCloseBtn" style="cursor:pointer; font-size:1.3rem;" title="Close"><i class="fa fa-times"></i></span>
         </div>
       </div>
-      <div id="queryResizable" style="width:100%; height:calc(100% - 44px); display:flex; flex-direction:row;">
-        <div id="queryControls" style="width:20%; min-width:200px; max-width:350px; padding:24px; border-right:1px solid #eee; background:#fafbfc; overflow-y:auto; height:100%;">
+      <div id="queryResizable" style="width:100%; height:calc(100% - 44px); display:flex; flex-direction:row; position:relative;">
+        <div id="queryControls" style="width:20%; min-width:325px; max-width:900px; padding:24px; border-right:1px solid #eee; background:#fafbfc; overflow-y:auto; height:100%; position:relative;">
+          <div id="queryControlsResizeHandle" style="position:absolute;top:0;right:0;width:8px;height:100%;cursor:ew-resize;z-index:10;background:rgba(0,0,0,0.08);display:flex;align-items:center;justify-content:center;">
+            <div style="width:4px;height:48px;background:#888;border-radius:2px;"></div>
+          </div>
           <form id="queryForm">
-            <div class="mb-3">
-              <label for="queryLayer" class="form-label">Layer</label>
-              <select class="form-select" id="queryLayer">
-                <option value="" selected disabled>Select Layer...</option>
-                <option value="Herostones">Herostones</option>
-                <option value="Inscriptions">Inscriptions</option>
-                <option value="Temples">Temples</option>
-              </select>
+            <!-- Removed extra Layer dropdown; layer selection is now per condition row -->
+            <div style="width:100%;" id="queryConditionHeadings">
+              <div class="d-flex w-100" style="gap:8px;">
+                <div style="width:16%;"><label style="font-size:0.92em; font-weight:500;">Layer</label></div>
+                <div style="width:24%;"><label style="font-size:0.92em; font-weight:500;">Field</label></div>
+                <div style="width:18%;"><label style="font-size:0.92em; font-weight:500;">Operator</label></div>
+                <div style="width:16%;"><label style="font-size:0.92em; font-weight:500;">Value</label></div>
+                <div style="width:10%;min-width:60px;"><label style="font-size:0.92em; font-weight:500;">AND/OR</label></div>
+                <div style="width:36px;"></div>
+              </div>
             </div>
             <div id="queryConditions">
               <!-- Dynamic conditions will be inserted here -->
             </div>
-            <div class="mb-3">
-              <label for="queryLogic" class="form-label">Combine Conditions With</label>
-              <select class="form-select" id="queryLogic">
-                <option value="AND">AND</option>
-                <option value="OR">OR</option>
-              </select>
+            <!-- Removed global Combine Conditions dropdown; logic is now per condition row -->
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <button type="button" class="btn btn-secondary" id="addConditionBtn">Add Condition</button>
+              <button type="submit" class="btn btn-primary">Run Query</button>
             </div>
-            <button type="button" class="btn btn-secondary mb-2" id="addConditionBtn">Add Condition</button>
-            <button type="submit" class="btn btn-primary">Run Query</button>
           </form>
         </div>
         <div id="queryResults" style="width:80%; padding:24px; overflow:auto; height:100%; display:flex; flex-direction:column;"></div>
       </div>
     `;
 
-    // Add resize handle logic
+    // Add vertical resize handle logic (top of query-section)
     var resizeHandle = document.getElementById('query-section-resize-handle');
     if (resizeHandle) {
       resizeHandle.style.position = 'absolute';
@@ -119,6 +120,37 @@ function showQueryWidget() {
         if (mapDiv) {
           mapDiv.style.height = (window.innerHeight - newHeight - 56) + 'px';
         }
+      });
+      document.addEventListener('mouseup', function() {
+        if (isResizing) {
+          isResizing = false;
+          document.body.style.userSelect = '';
+        }
+      });
+    }
+
+    // Add horizontal resize handle logic (right edge of queryControls)
+    var controlsResizeHandle = document.getElementById('queryControlsResizeHandle');
+    var queryControls = document.getElementById('queryControls');
+    if (controlsResizeHandle && queryControls) {
+      let isResizing = false;
+      let startX = 0;
+      let startWidth = 0;
+      controlsResizeHandle.addEventListener('mousedown', function(e) {
+        isResizing = true;
+        startX = e.clientX;
+        startWidth = queryControls.offsetWidth;
+        document.body.style.userSelect = 'none';
+      });
+      document.addEventListener('mousemove', function(e) {
+        if (!isResizing) return;
+        let dx = e.clientX - startX;
+        let newWidth = startWidth + dx;
+    let minWidth = 325;
+    let maxWidth = Math.min(window.innerWidth * 0.5, 900);
+    if (newWidth < minWidth) newWidth = minWidth;
+    if (newWidth > maxWidth) newWidth = maxWidth;
+    queryControls.style.width = newWidth + 'px';
       });
       document.addEventListener('mouseup', function() {
         if (isResizing) {
@@ -207,28 +239,57 @@ function showQueryWidget() {
     row.className = 'mb-2 d-flex align-items-center';
     row.id = rowId;
     row.innerHTML = `
-      <select class="form-select me-2" style="width:28%;" id="queryField${conditionCount}"></select>
-      <select class="form-select me-2" style="width:22%;" id="queryOperator${conditionCount}">
-        <option value="=">=</option>
-        <option value="contains">contains</option>
-        <option value="startsWith">starts with</option>
-        <option value="endsWith">ends with</option>
-        <option value=">">&gt;</option>
-        <option value="<">&lt;</option>
-      </select>
-      <input type="text" class="form-control me-2" style="width:28%;" id="queryValue${conditionCount}">
-      <button type="button" class="btn btn-sm btn-danger" id="removeCondBtn${conditionCount}" title="Remove"><i class="fa fa-times"></i></button>
+      <div class="d-flex w-100" style="gap:8px;">
+        <div style="width:16%;">
+          <select class="form-select" id="queryLayer${conditionCount}">
+            <option value="" selected disabled>Select Layer...</option>
+            <option value="Herostones">Herostones</option>
+            <option value="Inscriptions">Inscriptions</option>
+            <option value="Temples">Temples</option>
+          </select>
+        </div>
+        <div style="width:24%;">
+          <select class="form-select" id="queryField${conditionCount}"></select>
+        </div>
+        <div style="width:18%;">
+          <select class="form-select" id="queryOperator${conditionCount}">
+            <option value="=">=</option>
+            <option value="contains">contains</option>
+            <option value="startsWith">starts with</option>
+            <option value="endsWith">ends with</option>
+            <option value=">">&gt;</option>
+            <option value="<">&lt;</option>
+          </select>
+        </div>
+        <div style="width:16%;">
+          <input type="text" class="form-control" id="queryValue${conditionCount}">
+        </div>
+        <div style="width:10%;min-width:60px;">
+          <select class="form-select" id="queryLogic${conditionCount}">
+            <option value="AND">AND</option>
+            <option value="OR">OR</option>
+          </select>
+        </div>
+        <div style="display:flex;align-items:end;">
+          <button type="button" class="btn btn-sm btn-danger" id="removeCondBtn${conditionCount}" title="Remove"><i class="fa fa-times"></i></button>
+        </div>
+      </div>
     `;
     conditionsDiv.appendChild(row);
     document.getElementById(`removeCondBtn${conditionCount}`).onclick = function() {
       row.remove();
     };
-    // Populate fields
+    // Populate fields when layer changes
+    document.getElementById(`queryLayer${conditionCount}`).addEventListener('change', function() {
+      updateFieldsForRow(conditionCount);
+    });
+    // Initial field population
     updateFieldsForRow(conditionCount);
   }
 
   function updateFieldsForRow(idx) {
-    var layerName = document.getElementById('queryLayer').value;
+  var layerSelect = document.getElementById(`queryLayer${idx}`);
+  var layerName = layerSelect ? layerSelect.value : '';
     var fieldSelect = document.getElementById(`queryField${idx}`);
     fieldSelect.innerHTML = '';
     var defaultOpt = document.createElement('option');
@@ -275,12 +336,7 @@ function showQueryWidget() {
     }
   }
 
-  document.getElementById('queryLayer').addEventListener('change', function() {
-    // Update all condition rows
-    for (let i = 1; i <= conditionCount; i++) {
-      if (document.getElementById(`queryField${i}`)) updateFieldsForRow(i);
-    }
-  });
+  // No global layer dropdown; layer selection is per condition row
   // Add first condition row by default
   addConditionRow();
   document.getElementById('addConditionBtn').onclick = addConditionRow;
@@ -288,42 +344,79 @@ function showQueryWidget() {
   // Query logic
   document.getElementById('queryForm').onsubmit = function(e) {
     e.preventDefault();
-    var layerName = document.getElementById('queryLayer').value;
-    var logic = document.getElementById('queryLogic').value;
-    var layer = null;
-    if (layerName === 'Herostones') layer = window.herostonesLayer;
-    if (layerName === 'Inscriptions') layer = window.inscriptionsLayer;
-    if (layerName === 'Temples') layer = window.templesLayer;
-    if (!layer) return;
-    var features = layer.toGeoJSON().features;
-    // Gather all conditions
+    // Gather all conditions, each with its layer
     var conditions = [];
     for (let i = 1; i <= conditionCount; i++) {
+      var layerEl = document.getElementById(`queryLayer${i}`);
       var fieldEl = document.getElementById(`queryField${i}`);
       var opEl = document.getElementById(`queryOperator${i}`);
       var valEl = document.getElementById(`queryValue${i}`);
-      if (fieldEl && opEl && valEl && fieldEl.value && opEl.value && valEl.value) {
-        conditions.push({ field: fieldEl.value, operator: opEl.value, value: valEl.value });
+      var logicEl = document.getElementById(`queryLogic${i}`);
+      if (layerEl && fieldEl && opEl && valEl && logicEl && layerEl.value && fieldEl.value && opEl.value && valEl.value && logicEl.value) {
+        conditions.push({ layer: layerEl.value, field: fieldEl.value, operator: opEl.value, value: valEl.value, logic: logicEl.value });
       }
     }
-    // Filtering logic
-    var results = features.filter(function(f) {
-      var matches = conditions.map(function(cond) {
-        var prop = f.properties[cond.field];
-        if (cond.operator === '=') return prop == cond.value;
-        if (cond.operator === 'contains') return (prop + '').toLowerCase().includes(cond.value.toLowerCase());
-        if (cond.operator === 'startsWith') return (prop + '').toLowerCase().startsWith(cond.value.toLowerCase());
-        if (cond.operator === 'endsWith') return (prop + '').toLowerCase().endsWith(cond.value.toLowerCase());
-        if (cond.operator === '>') return parseFloat(prop) > parseFloat(cond.value);
-        if (cond.operator === '<') return parseFloat(prop) < parseFloat(cond.value);
-        return false;
+    // Get features from all layers
+    var layerMap = {
+      'Herostones': window.herostonesLayer,
+      'Inscriptions': window.inscriptionsLayer,
+      'Temples': window.templesLayer
+    };
+    var allResults = [];
+    Object.keys(layerMap).forEach(function(layerName) {
+      var layer = layerMap[layerName];
+      if (!layer) return;
+      var features = layer.toGeoJSON().features;
+      features.forEach(function(f) {
+        // Get conditions for this layer
+        var layerConds = conditions.filter(c => c.layer === layerName);
+        if (layerConds.length === 0) return;
+        // Evaluate per-condition logic chain
+        let match = false;
+        if (layerConds.length === 1) {
+          // Only one condition, use its logic
+          var cond = layerConds[0];
+          var prop = f.properties[cond.field];
+          match = (cond.operator === '=' && prop == cond.value)
+            || (cond.operator === 'contains' && (prop + '').toLowerCase().includes(cond.value.toLowerCase()))
+            || (cond.operator === 'startsWith' && (prop + '').toLowerCase().startsWith(cond.value.toLowerCase()))
+            || (cond.operator === 'endsWith' && (prop + '').toLowerCase().endsWith(cond.value.toLowerCase()))
+            || (cond.operator === '>' && parseFloat(prop) > parseFloat(cond.value))
+            || (cond.operator === '<' && parseFloat(prop) < parseFloat(cond.value));
+        } else {
+          // Multiple conditions, chain logic
+          // Start with first condition
+          var prop = f.properties[layerConds[0].field];
+          match = (layerConds[0].operator === '=' && prop == layerConds[0].value)
+            || (layerConds[0].operator === 'contains' && (prop + '').toLowerCase().includes(layerConds[0].value.toLowerCase()))
+            || (layerConds[0].operator === 'startsWith' && (prop + '').toLowerCase().startsWith(layerConds[0].value.toLowerCase()))
+            || (layerConds[0].operator === 'endsWith' && (prop + '').toLowerCase().endsWith(layerConds[0].value.toLowerCase()))
+            || (layerConds[0].operator === '>' && parseFloat(prop) > parseFloat(layerConds[0].value))
+            || (layerConds[0].operator === '<' && parseFloat(prop) < parseFloat(layerConds[0].value));
+          // Apply each subsequent condition with its logic
+          for (let j = 1; j < layerConds.length; j++) {
+            var cond = layerConds[j];
+            var prop = f.properties[cond.field];
+            var condMatch = (cond.operator === '=' && prop == cond.value)
+              || (cond.operator === 'contains' && (prop + '').toLowerCase().includes(cond.value.toLowerCase()))
+              || (cond.operator === 'startsWith' && (prop + '').toLowerCase().startsWith(cond.value.toLowerCase()))
+              || (cond.operator === 'endsWith' && (prop + '').toLowerCase().endsWith(cond.value.toLowerCase()))
+              || (cond.operator === '>' && parseFloat(prop) > parseFloat(cond.value))
+              || (cond.operator === '<' && parseFloat(prop) < parseFloat(cond.value));
+            if (layerConds[j].logic === 'AND') {
+              match = match && condMatch;
+            } else {
+              match = match || condMatch;
+            }
+          }
+        }
+        if (match) {
+          f._queryLayer = layerName;
+          allResults.push(f);
+        }
       });
-      if (logic === 'AND') {
-        return matches.every(Boolean);
-      } else {
-        return matches.some(Boolean);
-      }
     });
+    var results = allResults;
     // Pagination variables
     var resultsDiv = document.getElementById('queryResults');
     var pageSize = 5;
@@ -341,13 +434,21 @@ function showQueryWidget() {
       var html = '<div style="flex:1 1 0; height:100%; overflow:auto; max-width:100%; display:flex; flex-direction:column; justify-content:stretch;">';
       html += '<table class="table table-bordered table-sm" style="min-width:600px;width:100%;height:100%;">';
       html += '<thead style="position:sticky;top:0;background:#f5f5f7;z-index:2;"><tr>';
-      Object.keys(results[0].properties).forEach(function(k) { html += '<th>' + k + '</th>'; });
+      html += '<th>Layer</th>';
+      // Get all unique keys from all results
+      var allKeys = new Set();
+      results.forEach(f => Object.keys(f.properties).forEach(k => allKeys.add(k)));
+      allKeys = Array.from(allKeys);
+      allKeys.forEach(function(k) { html += '<th>' + k + '</th>'; });
       html += '</tr></thead><tbody>';
       for (var i = start; i < end; i++) {
         var f = results[i];
         html += '<tr>';
-        Object.keys(f.properties).forEach(function(k) {
-          var cellValue = f.properties[k];
+        // Layer column
+        html += `<td style="font-weight:bold;color:#72383d;">${f._queryLayer || ''}</td>`;
+        // Data columns
+        allKeys.forEach(function(k) {
+          var cellValue = f.properties[k] !== undefined ? f.properties[k] : '';
           var highlight = '';
           var innerHtml = cellValue + '';
           let matched = false;
@@ -355,7 +456,7 @@ function showQueryWidget() {
           let highlightRanges = [];
           for (let condIdx = 0; condIdx < conditions.length; condIdx++) {
             var cond = conditions[condIdx];
-            if (k === cond.field) {
+            if ((f._queryLayer === cond.layer) && (k === cond.field)) {
               let valStr = cellValue + '';
               if (cond.operator === '=') {
                 if (cellValue == cond.value) {
@@ -454,17 +555,36 @@ function showQueryWidget() {
     }
     renderTable(currentPage);
 
-    // Highlight results on map
-    if (window._queryHighlightLayer) {
-      window.map.removeLayer(window._queryHighlightLayer);
+    // Show only matched markers for layers involved in the query
+    var involvedLayers = Array.from(new Set(conditions.map(c => c.layer)));
+    var layerMap = {
+      'Herostones': window.herostonesLayer,
+      'Inscriptions': window.inscriptionsLayer,
+      'Temples': window.templesLayer
+    };
+    // For each involved layer, clear and add only matched features
+    involvedLayers.forEach(function(layerName) {
+      var layer = layerMap[layerName];
+      if (!layer) return;
+      layer.clearLayers();
+      // Get matched features for this layer
+      var matchedFeatures = results.filter(f => f._queryLayer === layerName);
+      layer.addData({type:'FeatureCollection',features:matchedFeatures});
+    });
+    // Optionally, fit bounds to all matched features
+    if (results.length > 0) {
+      var allBounds = null;
+      results.forEach(function(f) {
+        var layer = layerMap[f._queryLayer];
+        if (layer) {
+          var featureLayer = L.geoJSON(f);
+          var bounds = featureLayer.getBounds();
+          if (!allBounds) allBounds = bounds;
+          else allBounds.extend(bounds);
+        }
+      });
+      if (allBounds) window.map.fitBounds(allBounds, {padding: [40,40], maxZoom: 15});
     }
-    window._queryHighlightLayer = L.geoJSON(results, {
-      style: { color: '#e63946', weight: 4, fillOpacity: 0.2 },
-      pointToLayer: function (feature, latlng) {
-        return L.circleMarker(latlng, { radius: 8, color: '#e63946', fillOpacity: 0.5 });
-      }
-    }).addTo(window.map);
-    window.map.fitBounds(window._queryHighlightLayer.getBounds(), {padding: [40,40], maxZoom: 15});
   };
 }
 

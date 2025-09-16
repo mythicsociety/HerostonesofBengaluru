@@ -197,13 +197,12 @@
     <!-- Main content area: map and query section stacked vertically -->
     <div id="mainContent">
       <!-- Left SidePanel container for Leaflet.SidePanel plugin -->
-  <div id="panelLeft" class="sidepanel" aria-label="left side panel" aria-hidden="true" style="left:-320px; top:75px; height:calc(100vh - 75px); position:absolute; z-index:1101;">
-        <!-- Draggable resize edge for left panel -->
-        <div id="panelLeftDragEdge" class="panel-drag-edge" style="right:0;"></div>
-        <!-- Vertical toggle button on right edge of left panel -->
-        <button id="panelLeftToggle" aria-label="Toggle left panel" style="position:absolute;right:-32px;top:50%;transform:translateY(-50%);width:32px;height:48px;background:#2b2b2b;border-radius:0 5px 5px 0;border:1px solid #ccc;box-shadow:0 2px 8px rgba(0,0,0,0.08);display:flex;align-items:center;justify-content:center;z-index:1002;cursor:pointer;transition:background 0.2s;">
-          <span id="panelLeftArrow" style="display:inline-block;transition:transform 0.2s;font-size:1.5em;color:#fff;">&#x2A1E;</span>
-        </button>
+      <!-- Left panel toggle button (always visible) -->
+      <button id="panelLeftToggle" aria-label="Toggle left panel" style="position:absolute;left:0;top:50%;transform:translateY(-50%);width:32px;height:48px;background:#2b2b2b;border-radius:0 5px 5px 0;border:1px solid #ccc;box-shadow:0 2px 8px rgba(0,0,0,0.08);display:flex;align-items:center;justify-content:center;z-index:2002;cursor:pointer;transition:background 0.2s;">
+        <span id="panelLeftArrow" style="display:inline-block;transition:transform 0.2s;font-size:1.5em;color:#fff;">&#x2A1E;</span>
+      </button>
+      <!-- Left SidePanel container for Leaflet.SidePanel plugin -->
+      <div id="panelLeft" class="sidepanel" aria-label="left side panel" aria-hidden="true" style="left:-320px; top:75px; height:calc(100vh - 75px); position:absolute; z-index:1101;">
         <div class="sidepanel-inner-wrapper">
           <nav class="sidepanel-tabs-wrapper" aria-label="sidepanel tab navigation">
             <ul class="sidepanel-tabs">
@@ -343,8 +342,6 @@
       <div id="map"></div>
       <!-- Right Info SidePanel -->
   <div id="panelRight" class="sidepanel" aria-label="side panel" aria-hidden="true" style="right:-320px; top:56px; height:calc(100vh - 56px);">
-  <!-- Draggable resize edge for right panel -->
-        <div id="panelRightDragEdge" class="panel-drag-edge" style="left:0;"></div>
         <!-- Vertical toggle button on left edge -->
           <button id="panelRightToggle" aria-label="Toggle right panel" style="position:absolute;left: -32px ;top:50%;transform:translateY(-50%);width:32px;height:48px;background:#2b2b2b;border-radius: 5px 0 0 5px;border:1px solid #ccc;box-shadow:0 2px 8px rgba(0,0,0,0.08);display:flex;align-items:center;justify-content:center;z-index:1002;cursor:pointer;transition:background 0.2s;">
           <span id="panelRightArrow" style="display:inline-block;transition:transform 0.2s;font-size:1.5em;">
