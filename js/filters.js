@@ -36,6 +36,11 @@ function renderFiltersTab(container) {
           data.features.forEach(f => {
             let d = f.properties.District_KGIS || f.properties.District || f.properties.district;
             if(d && typeof d === 'string') districtsSet.add(d.trim());
+          /**
+           * filters.js
+           * Filter tab logic for WebGIS
+           * All logic preserved, only code style and comments improved.
+           */
           });
         }
         loaded++;

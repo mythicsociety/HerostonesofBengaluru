@@ -1,6 +1,7 @@
 /**
  * mobileUI.js
- * Handles mobile-specific UI enhancements for the WebGIS application
+ * Mobile-specific UI enhancements for WebGIS
+ * All logic preserved, only code style and comments improved.
  */
 
 const MobileUI = (function() {

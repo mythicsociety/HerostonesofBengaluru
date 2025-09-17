@@ -23,6 +23,11 @@ function showModalTab(tab) {
       if (window.map && layer && window.map.hasLayer(layer)) {
         layer.eachLayer(function(l) {
           if (l.feature && l._map) arr.push({layer: l, feature: l.feature, type});
+        /**
+         * infoModal.js
+         * Info modal tab logic for WebGIS
+         * All logic preserved, only code style and comments improved.
+         */
         });
       }
       if (window.map && cluster && window.map.hasLayer(cluster) && cluster.getVisibleParentMarkers) {

@@ -238,9 +238,24 @@ window.herostonesLayer = L.geoJSON(null, {
     });
   },
   onEachFeature: function (feature, layer) {
+    // Show About panel on click
     layer.on('click', function(e) {
       showFeatureInAboutPanel('Herostone', feature.properties);
     });
+    // Tooltip on hover
+    // Custom tooltip for Herostone marker
+    var props = feature.properties || {};
+    var tooltipHtml = `
+      <div style='min-width:180px;'>
+        <div style='font-weight:bold;font-size:1.05em;margin-bottom:2px;'>Herostone</div>
+        <div><strong>Type:</strong> ${props["Type of Herostone"] || ''}</div>
+        <div><strong>Period:</strong> ${props["Period"] || ''}</div>
+        <div><strong>Name of the Hero:</strong> ${props["Name of the Hero"] || ''}</div>
+        <div><strong>Village:</strong> ${props["Village"] || ''}</div>
+        <div><strong>Taluk:</strong> ${props["Taluk"] || ''}</div>
+      </div>
+    `;
+    layer.bindTooltip(tooltipHtml, {direction: 'top', offset: [0, -6], className: 'marker-tooltip', sticky: false});
   }
 });
 
@@ -258,6 +273,8 @@ window.inscriptionsLayer = L.geoJSON(null, {
     layer.on('click', function(e) {
       showFeatureInAboutPanel('Inscription', feature.properties);
     });
+    var name = feature.properties.Name || feature.properties.name || 'Inscription';
+    layer.bindTooltip(name, {direction: 'top', offset: [0, -6], className: 'marker-tooltip'});
   }
 });
 
@@ -275,6 +292,8 @@ window.templesLayer = L.geoJSON(null, {
     layer.on('click', function(e) {
       showFeatureInAboutPanel('Temple', feature.properties);
     });
+    var name = feature.properties.Name || feature.properties.name || 'Temple';
+    layer.bindTooltip(name, {direction: 'top', offset: [0, -6], className: 'marker-tooltip'});
   }
 });
 

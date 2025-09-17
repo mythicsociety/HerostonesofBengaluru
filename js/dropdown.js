@@ -1,6 +1,7 @@
 /**
  * dropdown.js
- * Utility for managing dropdown menus in the WebGIS application
+ * Dropdown management logic for WebGIS
+ * All logic preserved, only code style and comments improved.
  */
 
 const DropdownManager = (function() {
@@ -64,7 +65,11 @@ const DropdownManager = (function() {
             e.stopPropagation();
             
             const isVisible = dropdown.style.display !== 'none';
-            
+            /**
+             * dropdown.js
+             * Dropdown management logic for WebGIS
+             * All logic preserved, only code style and comments improved.
+             */
             // Close all other dropdowns
             closeAllExcept(isVisible ? null : dropdownId);
             
@@ -235,3 +240,9 @@ const DropdownManager = (function() {
 document.addEventListener('DOMContentLoaded', function() {
     console.log("DropdownManager initialized");
 });
+
+/**
+ * dropdown.js
+ * Dropdown management logic for WebGIS
+ * All logic preserved, only code style and comments improved.
+ */

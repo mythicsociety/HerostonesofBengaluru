@@ -116,6 +116,11 @@ window.showNotification = function(message, type = 'info', duration = 5000) {
         document.head.appendChild(style);
     }
     
+    /**
+     * errorHandler.js
+     * Error handling and loading indicator utilities for WebGIS
+     * All logic preserved, only code style and comments improved.
+     */
     return notification;
 };
 

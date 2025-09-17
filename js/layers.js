@@ -11,6 +11,11 @@ function setBasemap(basemap) {
       window.map.removeLayer(layer);
       console.log('Removed basemap:', key);
     }
+  /**
+   * layers.js
+   * Layer tab logic and map initialization for WebGIS
+   * All logic preserved, only code style and comments improved.
+   */
   });
   // Add selected basemap
   if (window.baseLayers[basemap]) {
