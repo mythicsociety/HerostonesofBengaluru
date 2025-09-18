@@ -2,6 +2,84 @@
 window.isQueryWidgetOpen = false;
 // Toggle query widget open/close
 document.addEventListener('DOMContentLoaded', function() {
+// Listen for navbar full-text search event
+document.addEventListener('navbarFullTextSearch', function(e) {
+  var query = (e.detail && e.detail.query) ? e.detail.query.trim().toLowerCase() : '';
+  if (!query) return;
+  // Collect all features from all layers
+  var allFeatures = [];
+  var layerMap = {
+    'Herostones': window.herostonesLayer,
+    'Inscriptions': window.inscriptionsLayer,
+    'Temples': window.templesLayer
+  };
+  // Only consider visible layers
+  var visibleLayerCount = 0;
+  Object.keys(layerMap).forEach(function(layerName) {
+    var layer = layerMap[layerName];
+    if (layer && window.map.hasLayer(layer)) {
+      visibleLayerCount++;
+      layer.eachLayer(function(marker) {
+        if (marker.feature) {
+          marker.feature._queryLayer = layerName;
+          allFeatures.push(marker.feature);
+        }
+      });
+    }
+  });
+  // Filter features by matching any property value (full-text)
+  var results = allFeatures.filter(function(f) {
+    var props = f.properties || {};
+    return Object.values(props).some(function(val) {
+      return (val + '').toLowerCase().includes(query);
+    });
+  });
+  // Notification logic
+  // Show notification if no layers visible
+  if (visibleLayerCount === 0) {
+    if (window.showNotification) window.showNotification('No layers are visible on the map. Please enable a layer to search.', 'warning', 3500);
+  }
+  // Show notification if no matches found
+  else if (results.length === 0) {
+    if (window.showNotification) window.showNotification('No matching features found for your search.', 'warning', 3500);
+  }
+  // Highlight matching markers with a red circle
+  // First, clear all highlights
+  Object.values(layerMap).forEach(function(layer) {
+    if (!layer) return;
+    layer.eachLayer(function(marker) {
+      var icon = marker.options.icon;
+      if (icon && icon.options && icon.options.className) {
+        icon.options.className = icon.options.className.replace(/ highlighted-marker/g, '');
+        marker.setIcon(icon);
+      }
+    });
+  });
+  // Then, highlight matched markers
+  results.forEach(function(f) {
+    var layer = layerMap[f._queryLayer];
+    if (!layer) return;
+    layer.eachLayer(function(marker) {
+      // Match by feature id (Leaflet stores feature in marker.feature)
+      if (marker.feature === f) {
+        var icon = marker.options.icon;
+        if (icon && icon.options && icon.options.className) {
+          if (!icon.options.className.includes('highlighted-marker')) {
+            icon.options.className += ' highlighted-marker';
+            marker.setIcon(icon);
+          }
+        }
+      }
+    });
+  });
+  // Add CSS for highlighted marker
+  if (!document.getElementById('highlighted-marker-style')) {
+    var style = document.createElement('style');
+    style.id = 'highlighted-marker-style';
+    style.innerHTML = '.highlighted-marker div { box-shadow: 0 0 0 4px red !important; }';
+    document.head.appendChild(style);
+  }
+});
   var queryBtn = document.getElementById('queryBtn');
   var querySection = document.getElementById('query-section');
   if (queryBtn && querySection) {
