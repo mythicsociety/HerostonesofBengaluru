@@ -314,12 +314,20 @@ function showFeatureInAboutPanel(type, properties) {
     var aboutTab = document.querySelector('#panelRight .sidepanel-tab-content[data-tab-content="tab-1"]');
     if (aboutTab) {
       var keys = Object.keys(properties);
+  var searchTerm = (window._lastSearchTerm || '').trim().toLowerCase();
       var tableHtml = '<h4>' + type + ' Details</h4>';
       tableHtml += '<div style="max-height:60vh;overflow:auto;border:1px solid #ccc;border-radius:6px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.05);margin-top:12px;">';
       tableHtml += '<table class="table table-bordered table-sm mb-0" style="font-size:0.97em;">';
       tableHtml += '<thead><tr><th>Attribute</th><th>Value</th></tr></thead><tbody>';
       keys.forEach(function(k) {
-        tableHtml += '<tr><td>' + k + '</td><td>' + (properties[k] !== undefined ? properties[k] : '') + '</td></tr>';
+        var val = properties[k] !== undefined ? properties[k] + '' : '';
+        var highlight = '';
+        if (searchTerm && val.toLowerCase().includes(searchTerm)) {
+          // Highlight the matching substring in yellow
+          var re = new RegExp('(' + searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+          val = val.replace(re, '<span style="background:yellow;font-weight:bold;">$1</span>');
+        }
+        tableHtml += '<tr><td>' + k + '</td><td>' + val + '</td></tr>';
       });
       tableHtml += '</tbody></table></div>';
       aboutTab.innerHTML = tableHtml;

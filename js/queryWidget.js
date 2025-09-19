@@ -5,6 +5,8 @@ document.addEventListener('DOMContentLoaded', function() {
 // Listen for navbar full-text search event
 document.addEventListener('navbarFullTextSearch', function(e) {
   var query = (e.detail && e.detail.query) ? e.detail.query.trim().toLowerCase() : '';
+  // Store last search term globally for About panel highlighting
+  window._lastSearchTerm = query;
   if (!query) return;
   // Collect all features from all layers
   var allFeatures = [];
